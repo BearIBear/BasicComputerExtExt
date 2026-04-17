@@ -1,5 +1,7 @@
 # BasicComputerExtExt
+Форк BasicComputerExt с некоторыми исправлениями и улучшениями
 
+### Интерфейс БЭВМ
 ![БЭВМ](https://github.com/BearIBear/BasicComputerExtExt/blob/master/bcomp-ng-extext-layout.png)
 
 ### Загрузка программы
@@ -30,5 +32,5 @@ EC01
 [Пример 4 лабы](https://github.com/HackMemory/BasicComputer/blob/master/lab4_test.txt)
 
 ### Трассировка
-Чтобы выполнить трассировку, указываем сперва начало программы, а после нажимаем выполнение. Полученную трассировку можно экпортировать в csv файл.
-![Трассировка](https://i.imgur.com/1HrCKcC.png)
+Чтобы выполнить трассировку, указываем сперва начало программы и по желанию задаём задержку, а после нажимаем выполнение. Полученную трассировку можно экпортировать в csv файл.
+![Трассировка](https://github.com/BearIBear/BasicComputerExtExt/blob/master/bcomp-ng-extext-tracing.png)
