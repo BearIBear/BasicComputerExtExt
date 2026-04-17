@@ -1,5 +1,5 @@
 # BasicComputerExtExt
-Форк BasicComputerExt с некоторыми исправлениями и улучшениями
+Вайбкоднутый форк BasicComputerExt с некоторыми исправлениями и улучшениями
 
 ### Интерфейс БЭВМ
 ![БЭВМ](https://github.com/BearIBear/BasicComputerExtExt/blob/master/bcomp-ng-extext-layout.png)
