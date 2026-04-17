@@ -1,5 +1,6 @@
 # BasicComputerExtExt
-![БЭВМ](https://i.imgur.com/NspoKvE.png)
+
+![БЭВМ](https://github.com/BearIBear/BasicComputerExtExt/blob/master/bcomp-ng-extext-layout.png)
 
 ### Загрузка программы
 Загрузка программы позволяет быстро загружать ваши программы из .txt файла.
