@@ -373,6 +373,7 @@ public class BasicView extends BCompPanel {
 			ioButtons[i-1].setFont(FONT_COURIER_PLAIN_12);
 			ioButtons[i-1].setBackground(COLOR_VALUE);
 			ioButtons[i-1].setForeground(COLOR_TEXT);
+			setCustomButtonStyle(ioButtons[i-1]);
 			ioButtons[i-1].setFocusable(false);
 			ioButtons[i-1].addItemListener(actionListeners[i-1]);
 

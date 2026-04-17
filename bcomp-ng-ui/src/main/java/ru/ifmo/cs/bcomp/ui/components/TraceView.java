@@ -159,6 +159,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JButton sleepBtn = new JButton("Задать задержку (мс)");
         sleepBtn.setForeground(COLOR_TEXT);
         sleepBtn.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(sleepBtn);
         sleepBtn.setFont(FONT_COURIER_PLAIN_12);
         sleepBtn.addActionListener(new ActionListener() {
             @Override
@@ -174,6 +175,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JButton button = new JButton("Выполнить трассировку");
         button.setForeground(COLOR_TEXT);
         button.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(button);
         button.setFont(FONT_COURIER_PLAIN_12);
         button.setBounds(625, 1, 200, BUTTONS_HEIGHT);
         button.setFocusable(false);
@@ -297,6 +299,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JButton btn1 = new JButton("Задать адрес началы программы");
         btn1.setForeground(COLOR_TEXT);
         btn1.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(btn1);
         btn1.setFont(FONT_COURIER_PLAIN_12);
         btn1.addActionListener(new ActionListener() {
             @Override
@@ -313,6 +316,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JButton btn2 = new JButton("Экспорт в CSV-файл");
         btn2.setForeground(COLOR_TEXT);
         btn2.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(btn2);
         btn2.setFont(FONT_COURIER_PLAIN_12);
         btn2.addActionListener(new ActionListener() {
             @Override
@@ -350,6 +354,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JButton btn3 = new JButton("Нажми на меня...");
         btn3.setForeground(COLOR_TEXT);
         btn3.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(btn3);
         btn3.setFont(FONT_COURIER_PLAIN_12);
         btn3.addActionListener(new ActionListener() {
             @Override

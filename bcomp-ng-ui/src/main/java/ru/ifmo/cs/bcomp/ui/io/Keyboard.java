@@ -82,6 +82,9 @@ public class Keyboard extends IODevice {
     private class SizedButton extends JButton {
         public SizedButton(final String title) {
             super(title);
+            setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_VALUE);
+            setForeground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT);
+            ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(this);
         }
 
         public final void buttonSetSize(Dimension d) {

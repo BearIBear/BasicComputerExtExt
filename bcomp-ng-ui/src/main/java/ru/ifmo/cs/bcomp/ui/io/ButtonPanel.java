@@ -23,6 +23,7 @@ class ButtonPanel extends JPanel {
             addListener(button, i);
             button.setPreferredSize(new Dimension(14, 14));
             button.setBackground(COLOR_VALUE);
+            ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(button);
             add(button, constraints);
             constraints.gridx++;
         }

@@ -81,6 +81,7 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 		JButton button = new JButton(cmanager.getRes().getString("compile"));
 		button.setForeground(COLOR_TEXT);
 		button.setBackground(COLOR_VALUE);
+		setCustomButtonStyle(button);
 		button.setFont(FONT_COURIER_PLAIN_12);
 		button.setFocusable(false);
 		button.addActionListener(this);

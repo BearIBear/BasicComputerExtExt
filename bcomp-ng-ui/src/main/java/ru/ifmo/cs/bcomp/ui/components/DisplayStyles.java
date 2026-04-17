@@ -234,6 +234,13 @@ public class DisplayStyles {
     public static final int MEME_WIDTH = 124;
 
 
+    public static void setCustomButtonStyle(javax.swing.AbstractButton button) {
+        button.setOpaque(true);
+        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+            button.setBorderPainted(false);
+        }
+    }
+
     public static void setGraphics(Graphics g, Component parent){
         g.setColor(COLOR_BACKGROUND_STYLE);
         g.fillRect(0, 0, parent.getWidth(), parent.getHeight());

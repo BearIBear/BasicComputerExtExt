@@ -14,6 +14,8 @@ public class ButtonReady extends JButton implements DataDestination {
     ButtonReady(IOCtrl ioCtrl, String title) {
         super(title);
         setFont(FONT_COURIER_PLAIN_12);
+        setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_VALUE);
+        ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(this);
         setFocusable(false);
         addActionListener(new ActionListener() {
             @Override

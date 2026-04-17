@@ -69,6 +69,7 @@ public class ComponentManager {
 				buttons[i] = new JButton(buttonProperties[i].texts[0]);
 				buttons[i].setForeground(buttonColors[0]);
 				buttons[i].setBackground(COLOR_VALUE);
+				setCustomButtonStyle(buttons[i]);
 				buttons[i].setFont(FONT_COURIER_PLAIN_12);
 				buttons[i].setFocusable(false);
 				buttons[i].addActionListener(buttonProperties[i].listener);

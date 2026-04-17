@@ -23,6 +23,8 @@ public class Numpad extends IODevice {
             super(title);
 
             this.value = value;
+            setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_VALUE);
+            ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(this);
 
             addActionListener(new ActionListener() {
                 @Override
@@ -63,7 +65,7 @@ public class Numpad extends IODevice {
             @Override
             public void setValue(long value) {
                 for (NumButton button : buttons)
-                    button.setForeground(value == 0 ? Color.black : Color.red);
+                    button.setForeground(value == 0 ? ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT : ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_ACTIVE);
             }
         });
 
