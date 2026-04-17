@@ -1,6 +1,5 @@
 package ru.ifmo.cs.bcomp.ui.components;
 
-
 import ru.ifmo.cs.bcomp.CPU;
 import ru.ifmo.cs.bcomp.ControlSignal;
 import ru.ifmo.cs.bcomp.Reg;
@@ -47,7 +46,8 @@ public class TraceView extends BCompPanel implements ActionListener {
         return Utils.toHex(cpu.getRegValue(reg), cpu.getRegWidth(reg));
     }
 
-    private static Reg[] printRegs = new Reg[]{ Reg.IP, Reg.CR, Reg.AR, Reg.DR, Reg.SP, Reg.BR, Reg.AC, Reg.PS };
+    private static Reg[] printRegs = new Reg[] { Reg.IP, Reg.CR, Reg.AR, Reg.DR, Reg.SP, Reg.BR, Reg.AC, Reg.PS };
+
     public String printRegsTitle() {
         if (!printRegsTitle)
             return "";
@@ -76,23 +76,24 @@ public class TraceView extends BCompPanel implements ActionListener {
         StringBuilder stringBuilderRegsCsv = new StringBuilder();
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append((cpu.getClockState() ? getMemory(savedPointer) + "\t"  :  Utils.toHex(savedPointer, 8) +
-                Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + "\t" ) );
+        stringBuilder.append((cpu.getClockState() ? getMemory(savedPointer) + "\t"
+                : Utils.toHex(savedPointer, 8) +
+                        Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + "\t"));
 
-        stringBuilderRegsCsv.append((cpu.getClockState() ? getMemoryCsv(savedPointer) + ","  :  Utils.toHex(savedPointer, 8) + "," +
-                Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + "," ) );
+        stringBuilderRegsCsv.append((cpu.getClockState() ? getMemoryCsv(savedPointer) + ","
+                : Utils.toHex(savedPointer, 8) + "," +
+                        Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + ","));
 
         for (Reg reg : printRegs) {
             stringBuilder.append(getReg(reg) + "\t");
             stringBuilderRegsCsv.append(getReg(reg) + ",");
         }
 
-        stringBuilder.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF,4)
-                + (cpu.getClockState() ? add :  getReg(Reg.MP)) + "\n");
+        stringBuilder.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF, 4)
+                + (cpu.getClockState() ? add : getReg(Reg.MP)) + "\n");
 
-        stringBuilderRegsCsv.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF,4)
-                + (cpu.getClockState() ? addCsv :  getReg(Reg.MP)) + "\n");
-
+        stringBuilderRegsCsv.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF, 4)
+                + (cpu.getClockState() ? addCsv : getReg(Reg.MP)) + "\n");
 
         setTrace(stringBuilder.toString());
         return stringBuilderRegsCsv.toString();
@@ -106,9 +107,8 @@ public class TraceView extends BCompPanel implements ActionListener {
         return Utils.toHex(addr, 11) + "," + Utils.toHex(cpu.getMemory().getValue(addr), 16);
     }
 
-
     public TraceView(final GUI gui) {
-        super (gui.getComponentManager(),null,null);
+        super(gui.getComponentManager(), null, null);
         this.gui = gui;
         this.cpu = gui.getCPU();
         this.cmanager = gui.getComponentManager();
@@ -124,11 +124,11 @@ public class TraceView extends BCompPanel implements ActionListener {
         GridBagLayout gbl = new GridBagLayout();
         leftPanel.setLayout(gbl);
 
-        GridBagConstraints c =  new GridBagConstraints();
+        GridBagConstraints c = new GridBagConstraints();
         c.anchor = GridBagConstraints.NORTH;
-        c.fill   = GridBagConstraints.BOTH;
+        c.fill = GridBagConstraints.BOTH;
         c.gridheight = 1;
-        c.gridwidth  = GridBagConstraints.REMAINDER;
+        c.gridwidth = GridBagConstraints.REMAINDER;
         c.gridx = GridBagConstraints.RELATIVE;
         c.gridy = GridBagConstraints.RELATIVE;
         c.insets = new Insets(0, 0, 0, 0);
@@ -150,10 +150,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         scroll.setBounds(TEXTAREA_X, TEXTAREA_Y, TEXTAREA_WIDTH, TEXTAREA_HEIGHT);
         mainPanel.add(scroll, BorderLayout.CENTER);
 
-
-
-
-        //left
+        // left
         JTextField sleepTb = new JTextField(String.valueOf(sleep));
         c.insets = new Insets(15, 0, 0, 0);
         gbl.setConstraints(sleepTb, c);
@@ -174,7 +171,6 @@ public class TraceView extends BCompPanel implements ActionListener {
         gbl.setConstraints(sleepBtn, c);
         leftPanel.add(sleepBtn);
 
-
         JButton button = new JButton("Выполнить трассировку");
         button.setForeground(COLOR_TEXT);
         button.setBackground(COLOR_VALUE);
@@ -182,36 +178,36 @@ public class TraceView extends BCompPanel implements ActionListener {
         button.setBounds(625, 1, 200, BUTTONS_HEIGHT);
         button.setFocusable(false);
 
-//        Thread cpuRun = new Thread(() -> {
-//            cpu.startStart();
-//            cpu.startContinue();
-//
-//            cpu.executeContinue();
-//            while (true) {
-//                if (!Long.toHexString(cpu.getRegValue(Reg.CR)).equals("100") && isRun)
-//                    cpu.executeContinue();
-//                else {
-//                    isRun = false;
-//                    button.setText("Выполнить трассировку");
-//                    System.out.println(currentThread().getName() + " is stopping Server thread");
-//                    break;
-//                }
-//            }
-//        });
+        // Thread cpuRun = new Thread(() -> {
+        // cpu.startStart();
+        // cpu.startContinue();
+        //
+        // cpu.executeContinue();
+        // while (true) {
+        // if (!Long.toHexString(cpu.getRegValue(Reg.CR)).equals("100") && isRun)
+        // cpu.executeContinue();
+        // else {
+        // isRun = false;
+        // button.setText("Выполнить трассировку");
+        // System.out.println(currentThread().getName() + " is stopping Server thread");
+        // break;
+        // }
+        // }
+        // });
 
         button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(!isRun) {
+                if (!isRun) {
                     isRun = true;
-                    button.setText("Приостоновить");
+                    button.setText("Приостановить");
 
-                    if(!isContinue) {
+                    if (!isContinue) {
                         printRegsTitle = true;
                         text.setText("");
                         stringRegsCsv.setLength(0);
-                    }else isContinue = false;
-
+                    } else
+                        isContinue = false;
 
                     cpu.addDestination(ControlSignal.STOR, new DataDestination() {
                         @Override
@@ -241,9 +237,11 @@ public class TraceView extends BCompPanel implements ActionListener {
                                 return;
 
                             Long _addr = 0L;
-                            if (!writelist.isEmpty()) _addr = writelist.remove(0);
+                            if (!writelist.isEmpty())
+                                _addr = writelist.remove(0);
 
-                            stringRegsCsv.append(printRegs((_addr == 0L ? "" : "\t" + getMemory(_addr)), (_addr == 0L ? "" : "," + getMemoryCsv(_addr))));
+                            stringRegsCsv.append(printRegs((_addr == 0L ? "" : "\t" + getMemory(_addr)),
+                                    (_addr == 0L ? "" : "," + getMemoryCsv(_addr))));
                             for (Long wraddr : writelist) {
                                 System.out.println(wraddr);
                                 setTrace(String.format(",%1$34s", "\t") + getMemory(wraddr) + "\n");
@@ -260,12 +258,12 @@ public class TraceView extends BCompPanel implements ActionListener {
 
                             try {
                                 Thread.sleep(sleep);
-                            } catch (InterruptedException e) { /*totally not empty*/ }
+                            } catch (InterruptedException e) {
+                                /* totally not empty */ }
                         }
                     });
 
-
-                    //sleep = sleeptime;
+                    // sleep = sleeptime;
                     new Thread(() -> {
                         cpu.startStart();
                         cpu.startContinue();
@@ -336,7 +334,7 @@ public class TraceView extends BCompPanel implements ActionListener {
                             writer.write('\ufeff');
                             writer.write(stringRegsCsv.toString());
                         } finally {
-                            if (writer != null){
+                            if (writer != null) {
                                 writer.close();
                             }
                         }
@@ -349,8 +347,6 @@ public class TraceView extends BCompPanel implements ActionListener {
 
         bottomButtons.add(btn2);
 
-
-
         JButton btn3 = new JButton("Нажми на меня...");
         btn3.setForeground(COLOR_TEXT);
         btn3.setBackground(COLOR_VALUE);
@@ -358,14 +354,15 @@ public class TraceView extends BCompPanel implements ActionListener {
         btn3.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(null, "1) Всегда указывайте адрес начала программы\n2) В программе обязательно должен быть HLT, чтобы БЭВМ тупа не завис (мне лень просто делать какие-то проверки)\n3) Вроде все :D");
+                JOptionPane.showMessageDialog(null,
+                        "1) Всегда указывайте адрес начала программы\n2) В программе обязательно должен быть HLT, чтобы БЭВМ тупа не завис (мне лень просто делать какие-то проверки)\n3) Вроде все :D");
             }
         });
 
         bottomButtons.add(btn3);
     }
 
-    public static void setTrace(String str){
+    public static void setTrace(String str) {
         try {
             StyleContext sc = StyleContext.getDefaultStyleContext();
             AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, Color.WHITE);
@@ -386,7 +383,7 @@ public class TraceView extends BCompPanel implements ActionListener {
 
     @Override
     public void redrawArrows() {
-        //no arrows no draw
+        // no arrows no draw
     }
 
     @Override
@@ -397,7 +394,7 @@ public class TraceView extends BCompPanel implements ActionListener {
 
     @Override
     public void panelDeactivate() {
-        if(!isRun)
+        if (!isRun)
             sleep = 1;
     }
 
