@@ -4,9 +4,10 @@
 
 package ru.ifmo.cs.bcomp.ui.components;
 
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import ru.ifmo.cs.bcomp.CPU;
 import ru.ifmo.cs.bcomp.ProgramBinary;
@@ -15,6 +16,8 @@ import ru.ifmo.cs.bcomp.assembler.Program;
 import ru.ifmo.cs.bcomp.ui.GUI;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -46,7 +49,10 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 		pane.setBackground(COLOR_BACKGROUND);
 
 		text = new RSyntaxTextArea();
-		text.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_ASSEMBLER_X86);
+		AbstractTokenMakerFactory atmf = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+		atmf.putMapping(BCompTokenMaker.SYNTAX_STYLE_BCOMP_ASM,
+				"ru.ifmo.cs.bcomp.ui.components.BCompTokenMaker");
+		text.setSyntaxEditingStyle(BCompTokenMaker.SYNTAX_STYLE_BCOMP_ASM);
 		text.setCodeFoldingEnabled(true);
 		text.setBackground(COLOR_BACKGROUND);
 		text.setForeground(COLOR_TEXT);
@@ -59,6 +65,18 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 			e.printStackTrace();
 		}
 		theme.apply(text);
+
+		// Keep the label registry updated so label references are highlighted
+		text.getDocument().addDocumentListener(new DocumentListener() {
+			private void update() {
+				BCompTokenMaker.updateKnownLabels(text.getText());
+				// Force re-tokenize so highlighting refreshes
+				text.forceReparsing(0);
+			}
+			@Override public void insertUpdate(DocumentEvent e) { update(); }
+			@Override public void removeUpdate(DocumentEvent e) { update(); }
+			@Override public void changedUpdate(DocumentEvent e) { update(); }
+		});
 
 		JButton button = new JButton(cmanager.getRes().getString("compile"));
 		button.setForeground(COLOR_TEXT);
@@ -121,7 +139,12 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 		cpu.setClockState(true);
 		long starttime = System.currentTimeMillis();
 		AsmNg asm = new AsmNg(text.getText());
-		Program pobj = asm.compile();
+		Program pobj = null;
+		try {
+			pobj = asm.compile();
+		} catch (Exception ex) {
+			asm.getErrors().add("Internal compiler error: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+		}
 		long finishtime = System.currentTimeMillis();
 		String errors = new String();
 		String st = "Start compilation at "+new Date(starttime)+"\n";
@@ -132,11 +155,14 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 		}
 
 		errors = errors + ft;
-		if(asm.getErrors().isEmpty()) errors = errors + "\n" + pobj.toCompiledWords();
+		if(asm.getErrors().isEmpty() && pobj != null) errors = errors + "\n" + pobj.toCompiledWords();
 
 		errorarea.setText(errors);
-		if (pobj != null) {
+		if (pobj != null && asm.getErrors().isEmpty()) {
 			gui.getBasicComp().loadProgram(new ProgramBinary(pobj.getBinaryFormat()));
+			gui.getInstructionDecoder().setProgram(pobj);
+		} else {
+			gui.getInstructionDecoder().clearProgram();
 		}
 
 		cpu.setClockState(clock);

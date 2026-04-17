@@ -29,6 +29,7 @@ public class GUI extends JApplet {
 	private final BasicComp bcomp;
 	private final CPU cpu;
 	private boolean isHex = true;
+	private final InstructionDecoder instructionDecoder = new InstructionDecoder();
 
 
 	public GUI(BasicComp bcomp) {
@@ -126,6 +127,10 @@ public class GUI extends JApplet {
 
 	public ComponentManager getComponentManager() {
 		return cmanager;
+	}
+
+	public InstructionDecoder getInstructionDecoder() {
+		return instructionDecoder;
 	}
 
 }

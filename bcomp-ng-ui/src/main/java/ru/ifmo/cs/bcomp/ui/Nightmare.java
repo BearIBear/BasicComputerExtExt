@@ -47,7 +47,7 @@ public class Nightmare {
 	private SevenSegmentDisplay ssd = null;
 	private Keyboard kbd = null;
 	private Numpad numpad = null;
-//	private GUI pairgui = null;
+	// private GUI pairgui = null;
 
 	private class BitView extends JComponent {
 		private final Register reg;
@@ -84,15 +84,16 @@ public class Nightmare {
 			label.setFont(LABEL_FONT);
 			add(label);
 
-			bits = new BitView[(int)reg.width];
+			bits = new BitView[(int) reg.width];
 
 			for (long i = reg.width - 1; i >= 0; i--)
-				add(bits[(int)i] = new BitView(reg, (int)i));
+				add(bits[(int) i] = new BitView(reg, (int) i));
 		}
 
 		@Override
 		public void setValue(long value) {
-			for (int i = 0; i < reg.width; bits[i++].repaint());
+			for (int i = 0; i < reg.width; bits[i++].repaint())
+				;
 		}
 
 		private void invertBit(int startbit) {
@@ -109,7 +110,7 @@ public class Nightmare {
 		private final RegisterView irq;
 
 		private BasicIOView(IOCtrl ioctrls[], int number) {
-			ioctrl = (IOCtrlBasic)ioctrls[number];
+			ioctrl = (IOCtrlBasic) ioctrls[number];
 			data = new RegisterView("DR", ioctrl.getRegisters()[0]);
 			flag = new RegisterView("SR", ioctrl.getRegisters()[1]);
 			irq = new RegisterView("IRQ", ioctrl.getRegisters()[2]);
@@ -186,7 +187,7 @@ public class Nightmare {
 	}
 
 	private class AdvIOView {
-		private final String REGNAMES[] = {"DR#0", "DR#1", "State", "Mgmt"};
+		private final String REGNAMES[] = { "DR#0", "DR#1", "State", "Mgmt" };
 		private final IOCtrlAdv ioctrl;
 		private final JFrame frame;
 		private final RegisterView regview[];
@@ -194,7 +195,7 @@ public class Nightmare {
 		private volatile int active = 0;
 
 		private AdvIOView(IOCtrl ioctrls[], int number) {
-			ioctrl = (IOCtrlAdv)ioctrls[number];
+			ioctrl = (IOCtrlAdv) ioctrls[number];
 
 			Register registers[] = ioctrl.getRegisters();
 			regview = new RegisterView[COUNT = registers.length];
@@ -220,7 +221,8 @@ public class Nightmare {
 					switch (e.getKeyCode()) {
 						case KeyEvent.VK_TAB:
 							regview[active].label.setForeground(LED_OFF);
-							regview[active = (active + (e.isShiftDown() ? COUNT - 1 : 1)) % COUNT].label.setForeground(LED_ON);
+							regview[active = (active + (e.isShiftDown() ? COUNT - 1 : 1)) % COUNT].label
+									.setForeground(LED_ON);
 							break;
 
 						case KeyEvent.VK_0:
@@ -286,7 +288,8 @@ public class Nightmare {
 				new SignalListener(regs.get(SP), WRSP),
 				new SignalListener(regs.get(AC), WRAC, IO),
 				new SignalListener(regs.get(BR), WRBR),
-				new SignalListener(regs.get(PS), WRPS, SETC, SETV, STNZ, SET_EI, HALT, SET_PROGRAM, SET_REQUEST_INTERRUPT),
+				new SignalListener(regs.get(PS), WRPS, SETC, SETV, STNZ, SET_EI, HALT, SET_PROGRAM,
+						SET_REQUEST_INTERRUPT),
 				new SignalListener(regs.get(AR), WRAR),
 		};
 
@@ -297,7 +300,8 @@ public class Nightmare {
 				if (delayPeriods[currentDelay] != 0)
 					try {
 						Thread.sleep(delayPeriods[currentDelay]);
-					} catch (InterruptedException e) { }
+					} catch (InterruptedException e) {
+					}
 			}
 		});
 
@@ -468,19 +472,19 @@ public class Nightmare {
 					case KeyEvent.VK_F:
 						regs.get(IR).invertBit(15);
 						break;
-/*
-				case KeyEvent.VK_F1:
-					ioctrls[1].setFlag();
-					break;
-
-				case KeyEvent.VK_F2:
-					ioctrls[2].setFlag();
-					break;
-
-				case KeyEvent.VK_F3:
-					ioctrls[3].setFlag();
-					break;
-*/
+					/*
+					 * case KeyEvent.VK_F1:
+					 * ioctrls[1].setFlag();
+					 * break;
+					 * 
+					 * case KeyEvent.VK_F2:
+					 * ioctrls[2].setFlag();
+					 * break;
+					 * 
+					 * case KeyEvent.VK_F3:
+					 * ioctrls[3].setFlag();
+					 * break;
+					 */
 					case KeyEvent.VK_F4:
 						cpu.startSetAddr();
 						break;

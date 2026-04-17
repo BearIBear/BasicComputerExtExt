@@ -27,6 +27,12 @@ public class DebugView extends BCompPanel implements ActionListener {
     private int selectedWatch = -1;
     private int watchAddress = -1;
 
+    // Saved scroll positions to persist across re-renders
+    private Point savedDumpScrollPos = null;
+    private Point savedWatchesScrollPos = null;
+    private JScrollPane dumpScrollPane;
+    private JScrollPane watchesScrollPane;
+
 
     private final Font font = new Font("Roboto", Font.PLAIN, 24);
 
@@ -39,12 +45,14 @@ public class DebugView extends BCompPanel implements ActionListener {
         this.addComponentListener(new ComponentListener() {
             @Override
             public void componentResized(ComponentEvent componentEvent) {
+                saveScrollPositions();
                 DebugView.this.dumpComponent = DebugView.this.renderDumpComponent();
                 DebugView.this.watchesComponent = DebugView.this.renderWatchesComponent();
                 // TODO: add breakpoints
 //                DebugView.this.breakpointsComponent = DebugView.this.renderBreakpointsComponent();
                 DebugView.this.removeAll();
                 DebugView.this.add(DebugView.this.renderMainComponent());
+                restoreScrollPositions();
             }
 
             @Override
@@ -130,7 +138,8 @@ public class DebugView extends BCompPanel implements ActionListener {
         cells.setLayoutOrientation(JList.VERTICAL_WRAP);
         cells.setVisibleRowCount(this.getHeight() / (int) (getFontMetrics(this.font).getHeight() * 1.2));
 
-        dump.add(new JScrollPane(cells));
+        this.dumpScrollPane = new JScrollPane(cells);
+        dump.add(this.dumpScrollPane);
 
         return dump;
     }
@@ -156,19 +165,23 @@ public class DebugView extends BCompPanel implements ActionListener {
         addWatch.setEnabled(false);
         addWatch.setFocusable(false);   // Magic: this line makes the button work every time
         addWatch.addActionListener(actionEvent -> {
+            saveScrollPositions();
             DebugView.this.watches.add(DebugView.this.watchAddress);
             DebugView.this.watchesComponent = DebugView.this.renderWatchesComponent();
             DebugView.this.removeAll();
             DebugView.this.add(DebugView.this.renderMainComponent());
+            restoreScrollPositions();
         });
 
         JButton removeWatch = new JButton("-");
         removeWatch.setEnabled(false);
         removeWatch.addActionListener(actionEvent -> {
+            saveScrollPositions();
             DebugView.this.watches.remove(DebugView.this.selectedWatch);
             DebugView.this.watchesComponent = DebugView.this.renderWatchesComponent();
             DebugView.this.removeAll();
             DebugView.this.add(DebugView.this.renderMainComponent());
+            restoreScrollPositions();
         });
 
         String addressFieldPlaceholder = "Address";
@@ -271,7 +284,8 @@ public class DebugView extends BCompPanel implements ActionListener {
         });
         c.weighty = 1;
         c.gridy = 2;
-        watches.add(new JScrollPane(watchesList), c);
+        this.watchesScrollPane = new JScrollPane(watchesList);
+        watches.add(this.watchesScrollPane, c);
 
         return watches;
     }
@@ -299,16 +313,38 @@ public class DebugView extends BCompPanel implements ActionListener {
 
     @Override
     public void panelActivate() {
+        saveScrollPositions();
         dumpMemory();
         this.dumpComponent = renderDumpComponent();
         this.watchesComponent = renderWatchesComponent();
         this.removeAll();
         this.add(renderMainComponent());
+        restoreScrollPositions();
     }
 
     @Override
     public void panelDeactivate() {
+        saveScrollPositions();
+    }
 
+    private void saveScrollPositions() {
+        if (this.dumpScrollPane != null && this.dumpScrollPane.getViewport() != null) {
+            this.savedDumpScrollPos = this.dumpScrollPane.getViewport().getViewPosition();
+        }
+        if (this.watchesScrollPane != null && this.watchesScrollPane.getViewport() != null) {
+            this.savedWatchesScrollPos = this.watchesScrollPane.getViewport().getViewPosition();
+        }
+    }
+
+    private void restoreScrollPositions() {
+        SwingUtilities.invokeLater(() -> {
+            if (this.savedDumpScrollPos != null && this.dumpScrollPane != null) {
+                this.dumpScrollPane.getViewport().setViewPosition(this.savedDumpScrollPos);
+            }
+            if (this.savedWatchesScrollPos != null && this.watchesScrollPane != null) {
+                this.watchesScrollPane.getViewport().setViewPosition(this.savedWatchesScrollPos);
+            }
+        });
     }
 
     @Override

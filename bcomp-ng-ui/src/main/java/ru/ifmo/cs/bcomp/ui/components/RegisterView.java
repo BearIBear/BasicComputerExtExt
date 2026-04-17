@@ -26,6 +26,14 @@ public class RegisterView extends BCompComponent implements DataDestination {
 
 	private final Register reg;
 	protected final JLabel value = addValueLabel();
+	
+	// Optional decoded instruction label (for CR)
+	private JLabel decodedLabel = null;
+	private InstructionDecoder decoder = null;
+
+	public JLabel getDecodedLabel() {
+		return decodedLabel;
+	}
 
 	public RegisterView(Register reg, Color colorTitleBG) {
 		super("", 0,colorTitleBG);
@@ -61,6 +69,17 @@ public class RegisterView extends BCompComponent implements DataDestination {
 		}
 	}
 
+	public void setInstructionDecoder(InstructionDecoder decoder) {
+		this.decoder = decoder;
+		if (decodedLabel == null) {
+			decodedLabel = new JLabel("", JLabel.LEFT);
+			decodedLabel.setFont(DisplayStyles.FONT_COURIER_BOLD_18);
+			decodedLabel.setForeground(DisplayStyles.COLOR_TEXT);
+			// We DO NOT add it to the RegisterView itself. We provide it via getDecodedLabel()
+			// so the parent layout can add it appropriately.
+		}
+	}
+
 	public void setProperties(int x, int y, boolean hex,boolean isLeft) {
 		setProperties(x, y, hex, (int)reg.width, isLeft);
 	}
@@ -77,6 +96,10 @@ public class RegisterView extends BCompComponent implements DataDestination {
 		setValue(hex ?
 			Utils.toHex(reg.getValue() & valuemask, formatWidth) :
 			Utils.toBinary((int)reg.getValue() & valuemask, formatWidth));
+			
+		if (decoder != null && decodedLabel != null) {
+			decodedLabel.setText(decoder.decode((int) reg.getValue()));
+		}
 	}
 
 	@Override

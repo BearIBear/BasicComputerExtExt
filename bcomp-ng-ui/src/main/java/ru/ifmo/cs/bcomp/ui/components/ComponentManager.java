@@ -303,9 +303,11 @@ public class ComponentManager {
 		flagViews[3].setTitle("C");
 
 		for (Reg reg : Reg.values()) {
-
-			regs.put(reg, new RegisterView(cpu.getRegister(reg)));
-
+			RegisterView rv = new RegisterView(cpu.getRegister(reg));
+			if (reg == Reg.CR) {
+				rv.setInstructionDecoder(gui.getInstructionDecoder());
+			}
+			regs.put(reg, rv);
 		}
 
 

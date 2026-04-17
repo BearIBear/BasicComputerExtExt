@@ -5,6 +5,7 @@
 package ru.ifmo.cs.bcomp.ui.components;
 
 import ru.ifmo.cs.bcomp.ControlSignal;
+import ru.ifmo.cs.bcomp.Reg;
 import ru.ifmo.cs.bcomp.SignalListener;
 
 import javax.swing.*;
@@ -101,6 +102,16 @@ public abstract class BCompPanel extends ActivateblePanel {
 			reg.setPreferredSize(reg.getSize());
 			reg.setTitle(prop.reg.toString());
 			regPanel.add(reg, prop.constraints);
+			
+			if (prop.reg == Reg.CR && reg.getDecodedLabel() != null) {
+				JLabel lbl = reg.getDecodedLabel();
+				lbl.setPreferredSize(new Dimension(200, 20));
+				
+				GridBagConstraints c = (GridBagConstraints) prop.constraints.clone();
+				// Use the same cell but push it up so it sits immediately above the register
+				c.insets = new Insets(0, prop.constraints.insets.left, reg.getSize().height + 15, 0);
+				regPanel.add(lbl, c);
+			}
 		}
 	}
 

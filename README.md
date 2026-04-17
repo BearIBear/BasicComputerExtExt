@@ -1,4 +1,4 @@
-# BasicComputer
+# BasicComputerExtExt
 ![БЭВМ](https://i.imgur.com/NspoKvE.png)
 
 ### Загрузка программы

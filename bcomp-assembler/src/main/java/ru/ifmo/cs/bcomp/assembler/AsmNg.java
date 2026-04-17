@@ -619,8 +619,9 @@ public class AsmNg {
                 if (iw.operand.reference != null) {
                     if (!labels.containsKey(iw.operand.reference)) {
                         reportError(new AssemblerException("Second pass: label refference "+iw.operand.reference+" not found",parser));
+                    } else {
+                        num = labels.get(iw.operand.reference).address;
                     }
-                    num = labels.get(iw.operand.reference).address;
                 }
                 if ((num > MemoryWord.MAX_ADDRESS) || (num < 0)) {
                     //TODO error number exceed limit values
