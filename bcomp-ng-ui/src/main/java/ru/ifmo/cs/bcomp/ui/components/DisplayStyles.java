@@ -238,6 +238,8 @@ public class DisplayStyles {
         button.setOpaque(true);
         if (System.getProperty("os.name").toLowerCase().contains("mac")) {
             button.setBorderPainted(false);
+            button.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            button.putClientProperty("JButton.buttonType", "square");
         }
     }
 

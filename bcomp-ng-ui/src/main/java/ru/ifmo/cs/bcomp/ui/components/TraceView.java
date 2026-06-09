@@ -36,8 +36,6 @@ public class TraceView extends BCompPanel implements ActionListener {
     private final ArrayList<Long> writelist = new ArrayList<Long>();
     private volatile long savedPointer;
     private volatile boolean printOnStop = true;
-    private volatile int sleep = 5;
-    private int sleeptime = 5;
 
     private boolean isRun = false;
     private boolean isContinue = false;
@@ -151,10 +149,22 @@ public class TraceView extends BCompPanel implements ActionListener {
         mainPanel.add(scroll, BorderLayout.CENTER);
 
         // left
-        JTextField sleepTb = new JTextField(String.valueOf(sleep));
+        JTextField sleepTb = new JTextField(String.valueOf(cmanager.getDelay()));
         c.insets = new Insets(15, 0, 0, 0);
         gbl.setConstraints(sleepTb, c);
         leftPanel.add(sleepTb);
+
+        cmanager.addDelayListener(new Runnable() {
+            @Override
+            public void run() {
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        sleepTb.setText(String.valueOf(cmanager.getDelay()));
+                    }
+                });
+            }
+        });
 
         JButton sleepBtn = new JButton("Задать задержку (мс)");
         sleepBtn.setForeground(COLOR_TEXT);
@@ -164,8 +174,13 @@ public class TraceView extends BCompPanel implements ActionListener {
         sleepBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                sleep = Integer.parseInt(sleepTb.getText());
-                setTrace("Задержка установлена на " + sleep + "\n");
+                try {
+                    long newDelay = Long.parseLong(sleepTb.getText());
+                    cmanager.setDelay(newDelay);
+                    setTrace("Задержка установлена на " + newDelay + " мс\n");
+                } catch (NumberFormatException ex) {
+                    setTrace("Неверный формат задержки\n");
+                }
             }
         });
         c.insets = new Insets(5, 0, 20, 0);
@@ -252,18 +267,7 @@ public class TraceView extends BCompPanel implements ActionListener {
                         }
                     });
 
-                    cpu.setTickFinishListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (sleep <= 0)
-                                return;
-
-                            try {
-                                Thread.sleep(sleep);
-                            } catch (InterruptedException e) {
-                                /* totally not empty */ }
-                        }
-                    });
+                    // Delay is managed by ComponentManager; no need to override tickFinishListener
 
                     // sleep = sleeptime;
                     new Thread(() -> {
@@ -399,8 +403,6 @@ public class TraceView extends BCompPanel implements ActionListener {
 
     @Override
     public void panelDeactivate() {
-        if (!isRun)
-            sleep = 1;
     }
 
     @Override

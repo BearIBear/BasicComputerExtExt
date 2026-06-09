@@ -10,7 +10,11 @@ public class ThirdIO extends IODevice {
     private RegisterView output;
 
     public ThirdIO(IOCtrl ioCtrl) {
-        super(ioCtrl, "IO");
+        this(ioCtrl, "IO");
+    }
+
+    public ThirdIO(IOCtrl ioCtrl, String title) {
+        super(ioCtrl, title);
     }
 
     @Override
@@ -25,7 +29,8 @@ public class ThirdIO extends IODevice {
         output.setTitle("DR");
         ButtonPanel input = new ButtonPanel(output);
         ButtonReady buttonReady = new ButtonReady(ioctrl,getRes().getString("ready"));
-        ioctrl.addDestination(1,buttonReady);
+        int stateReg = (ioctrl instanceof ru.ifmo.cs.bcomp.IOCtrlAdv) ? 2 : 1;
+        ioctrl.addDestination(stateReg,buttonReady);
         ioctrl.addDestination(0, output);
         GridBagConstraints constraints = new GridBagConstraints() {{
             gridy = 0;

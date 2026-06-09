@@ -11,6 +11,7 @@ import ru.ifmo.cs.bcomp.SignalListener;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_ACTIVE;
@@ -54,7 +55,7 @@ public abstract class BCompPanel extends ActivateblePanel {
 
 	private void drawBuses(Graphics g) {
 		ArrayList<BusView> openbuses = new ArrayList<BusView>();
-		ArrayList<ControlSignal> signals = cmanager.getActiveSignals();
+		List<ControlSignal> signals = cmanager.getActiveSignals();
 
 		for (BusView bus : busesMap.values()) {
 			for (ControlSignal signal : bus.getSignals())
@@ -70,7 +71,8 @@ public abstract class BCompPanel extends ActivateblePanel {
 
 	private void drawOpenBuses(Color color) {
 		Graphics g = getGraphics();
-		ArrayList<ControlSignal> signals = cmanager.getActiveSignals();
+		if (g == null) return;
+		List<ControlSignal> signals = cmanager.getActiveSignals();
 
 		for (BusView bus : busesMap.values())
 			for (ControlSignal signal : bus.getSignals())
@@ -79,11 +81,11 @@ public abstract class BCompPanel extends ActivateblePanel {
 	}
 
 	public void stepStart() {
-		drawOpenBuses(COLOR_BUS);
+		repaint();
 	}
 
 	public void stepFinish() {
-		drawOpenBuses(COLOR_ACTIVE);
+		repaint();
 	}
 
 	@Override

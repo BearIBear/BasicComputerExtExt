@@ -84,24 +84,26 @@ public class MemoryView extends BCompComponent {
 	}
 
 	public void eventRead() {
-		int addr = (int)mem.getLastAccessedAddress();
-		int page = getPage(addr);
+		final int addr = (int)mem.getLastAccessedAddress();
+		final int page = getPage(addr);
 
 		if (page != lastPage) {
 			lastPage = page;
-			updateMemory();
+			SwingUtilities.invokeLater(this::updateMemory);
 		}
 	}
 
 	public void eventWrite() {
-		int addr = (int)mem.getLastAccessedAddress();
-		int page = getPage(addr);
+		final int addr = (int)mem.getLastAccessedAddress();
+		final int page = getPage(addr);
 
 		if (page != lastPage) {
 			lastPage = page;
-			updateMemory();
-		} else
-			updateValue(addr - page);
+			SwingUtilities.invokeLater(this::updateMemory);
+		} else {
+			final int offset = addr - page;
+			SwingUtilities.invokeLater(() -> updateValue(offset));
+		}
 	}
 
 

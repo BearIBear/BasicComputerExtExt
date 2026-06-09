@@ -104,7 +104,7 @@ public class RegisterView extends BCompComponent implements DataDestination {
 
 	@Override
 	public void setValue(long value) {
-		setValue();
+		SwingUtilities.invokeLater(this::setValue);
 	}
 
 	public Register getReg() {

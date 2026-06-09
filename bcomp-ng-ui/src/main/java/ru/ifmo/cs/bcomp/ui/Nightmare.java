@@ -319,7 +319,7 @@ public class Nightmare {
 		panel.add(regs.get(PS));
 		panel.add(regs.get(IR));
 		JLabel hints = new JLabel(
-				"F4 Ввод адреса F5 Запись F6 Чтение F7 Пуск F8 Продолжение F9 Работа/Останов Shift-F9 Такт");
+				"F4 Ввод адреса F5 Запись F6 Чтение F7 Пуск F8 Продолжение F9 Работа/Останов Shift-F9 Такт F11/F12 Задержка");
 		hints.setFont(HINTS_FONT);
 		panel.add(hints);
 		frame.add(panel);

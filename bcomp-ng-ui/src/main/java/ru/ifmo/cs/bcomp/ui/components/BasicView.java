@@ -36,6 +36,7 @@ public class BasicView extends BCompPanel {
 	private Keyboard kbd = null;
 	private Numpad numpad = null;
 	private ThirdIO thirdIO;
+	private ThirdIO fourthIO;
 	private JToggleButton[] ioButtons = new JToggleButton[9];
 	private ItemListener[] actionListeners = new ItemListener[]{new ItemListener() {
 		@Override
@@ -81,7 +82,22 @@ public class BasicView extends BCompPanel {
 					thirdIO.getFrame().setVisible(false);
 			}
 		}
-	}, null,
+	}, new ItemListener() {
+		@Override
+		public void itemStateChanged(ItemEvent e) {
+			switch (e.getStateChange()){
+				case ItemEvent.SELECTED:
+					if (fourthIO == null) {
+						fourthIO = new ThirdIO(ioctrls[4], "IO4");
+						activateAndAddListener(fourthIO, 3);
+					} else
+						fourthIO.activate();
+					break;
+				case ItemEvent.DESELECTED:
+					fourthIO.getFrame().setVisible(false);
+			}
+		}
+	},
 			new ItemListener() {
 				@Override
 				public void itemStateChanged(ItemEvent e) {
@@ -357,7 +373,7 @@ public class BasicView extends BCompPanel {
 			fill = GridBagConstraints.NONE;
 			gridy = 0;
 			gridx = 0;
-			insets = new Insets(0, 0, 50, 0);
+			insets = new Insets(0, 0, 50, 1);
 		}};
 		GridBagConstraints constraintsButtonPanel = new GridBagConstraints() {{
 			fill = GridBagConstraints.NONE;

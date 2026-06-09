@@ -15,6 +15,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static ru.ifmo.cs.bcomp.ControlSignal.*;
 import static ru.ifmo.cs.bcomp.Reg.IR;
@@ -109,6 +111,13 @@ public class ComponentManager {
 			rbTact.setFocusPainted(false);
 			rbTact.setFocusable(false);
 			add(rbTact, constraints);
+
+			constraints.gridx++;
+			constraints.gridwidth = 2;
+			constraints.anchor = GridBagConstraints.CENTER;
+			JLabel dl = getDelayLabel();
+			dl.setPreferredSize(new Dimension(245, 20));
+			add(dl, constraints);
 		}
 	}
 
@@ -224,6 +233,12 @@ public class ComponentManager {
 	private static final int BUTTON_RUN = 6;
 	private static final int BUTTON_CLOCK = 7;
 	private JButton[] buttons;
+	private final long[] delayPeriods = {0, 1, 2, 5, 10, 25, 50, 100, 250, 500, 1000};
+	private volatile int currentDelay = 4;
+	private volatile long delayMs = 10;
+	private volatile int savedDelay;
+	private volatile long savedDelayMs = 10;
+	private final CopyOnWriteArrayList<Runnable> delayListeners = new CopyOnWriteArrayList<Runnable>();
 	private ButtonsPanel buttonsPanel = new ButtonsPanel();
 
 	private final GUI gui;
@@ -236,14 +251,12 @@ public class ComponentManager {
 	private InputRegisterView input;
 	private ActiveBitView activeBit = new ActiveBitView(ACTIVE_BIT_X, REG_KEY_Y);
 	private volatile BCompPanel activePanel;
-	private final long[] delayPeriods = {0, 1, 5, 10, 25, 50, 100, 1000};
-	private volatile int currentDelay = 3;
-	private volatile int savedDelay;
 	private final Object lockActivePanel = new Object();
 
 	private volatile boolean cuswitch = false;
 	private final SignalListener[] listeners;
-	private ArrayList<ControlSignal> openBuses = new ArrayList<ControlSignal>();
+	private final CopyOnWriteArrayList<ControlSignal> openBuses = new CopyOnWriteArrayList<ControlSignal>();
+	private JLabel delayLabel;
 	private static final ControlSignal[] busSignals = {
 			RDDR, RDCR, RDIP, RDAC, RDPS, RDIR, RDBR, RDSP,
 			WRDR, WRCR, WRIP, WRAC, WRPS, WRAR, WRBR, WRSP, LOAD, STOR, IO, TYPE
@@ -283,11 +296,10 @@ public class ComponentManager {
 						activePanel.stepFinish();
 				}
 
-				if (delayPeriods[currentDelay] != 0)
-					try {
-						Thread.sleep(delayPeriods[currentDelay]);
-					} catch (InterruptedException e) {
-					}
+				long currentDelayMs = delayMs;
+				if (currentDelayMs > 0) {
+					preciseDelay(currentDelayMs);
+				}
 			}
 		});
 
@@ -472,10 +484,92 @@ public class ComponentManager {
 
 	public void cmdNextDelay() {
 		currentDelay = currentDelay < delayPeriods.length - 1 ? currentDelay + 1 : 0;
+		delayMs = delayPeriods[currentDelay];
+		updateDelayLabel();
+		triggerDelayListeners();
 	}
 
 	public void cmdPrevDelay() {
 		currentDelay = (currentDelay > 0 ? currentDelay : delayPeriods.length) - 1;
+		delayMs = delayPeriods[currentDelay];
+		updateDelayLabel();
+		triggerDelayListeners();
+	}
+
+	public void addDelayListener(Runnable listener) {
+		delayListeners.add(listener);
+	}
+
+	private void triggerDelayListeners() {
+		for (Runnable r : delayListeners) {
+			try {
+				r.run();
+			} catch (Exception e) {
+				// ignore
+			}
+		}
+	}
+
+	public long getDelay() {
+		return delayMs;
+	}
+
+	public void setDelay(long newDelayMs) {
+		if (newDelayMs < 0) newDelayMs = 0;
+		this.delayMs = newDelayMs;
+		// Find closest index in delayPeriods
+		int closestIndex = 0;
+		long minDiff = Long.MAX_VALUE;
+		for (int i = 0; i < delayPeriods.length; i++) {
+			long diff = Math.abs(delayPeriods[i] - newDelayMs);
+			if (diff < minDiff) {
+				minDiff = diff;
+				closestIndex = i;
+			}
+		}
+		this.currentDelay = closestIndex;
+		updateDelayLabel();
+		triggerDelayListeners();
+	}
+
+	/**
+	 * Precise delay using System.nanoTime() instead of Thread.sleep().
+	 * Thread.sleep() has ~15ms granularity on Windows, making small delays
+	 * unpredictable. This method uses busy-wait for short delays and
+	 * sleep+spinwait for longer ones, providing stable timing across all OS.
+	 */
+	private static void preciseDelay(long millis) {
+		long deadlineNanos = System.nanoTime() + millis * 1_000_000L;
+		if (millis > 20) {
+			// For long delays, sleep most of the time to save CPU
+			try {
+				Thread.sleep(millis - 15);
+			} catch (InterruptedException e) {
+				return;
+			}
+		}
+		// Spin-wait for the remaining time for precision
+		while (System.nanoTime() < deadlineNanos) {
+			Thread.yield();
+		}
+	}
+
+	private void updateDelayLabel() {
+		if (delayLabel != null) {
+			long delay = delayMs;
+			String text = delay == 0 ? "Макс. скорость (F11/F12)" : "Задержка: " + delay + " мс (F11/F12)";
+			SwingUtilities.invokeLater(() -> delayLabel.setText(text));
+		}
+	}
+
+	public JLabel getDelayLabel() {
+		if (delayLabel == null) {
+			delayLabel = new JLabel();
+			delayLabel.setFont(FONT_COURIER_PLAIN_12);
+			delayLabel.setForeground(Color.WHITE);
+			updateDelayLabel();
+		}
+		return delayLabel;
 	}
 
 	public void cmdLoadProgramm() throws IOException {
@@ -511,11 +605,18 @@ public class ComponentManager {
 
 	public void saveDelay() {
 		savedDelay = currentDelay;
+		savedDelayMs = delayMs;
 		currentDelay = 0;
+		delayMs = 0;
+		updateDelayLabel();
+		triggerDelayListeners();
 	}
 
 	public void restoreDelay() {
 		currentDelay = savedDelay;
+		delayMs = savedDelayMs;
+		updateDelayLabel();
+		triggerDelayListeners();
 	}
 
 //	public void cmdAbout() {
@@ -533,7 +634,7 @@ public class ComponentManager {
 		return keyListener;
 	}
 
-	public ArrayList<ControlSignal> getActiveSignals() {
+	public List<ControlSignal> getActiveSignals() {
 		return openBuses;
 	}
 

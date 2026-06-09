@@ -84,6 +84,7 @@ public class Keyboard extends IODevice {
             super(title);
             setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_VALUE);
             setForeground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT);
+            setMargin(new java.awt.Insets(0, 0, 0, 0));
             ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(this);
         }
 
@@ -139,10 +140,12 @@ public class Keyboard extends IODevice {
 
     @Override
     protected Component getContent() {
-        JPanel content = new JPanel(new GridLayout(5, 1, 0, 0));
+        JPanel content = new JPanel(new GridLayout(5, 1, 0, 1));
+        content.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
 
         for (int line = 0; line < KEYS.length; line++) {
-            JPanel jrow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+            JPanel jrow = new JPanel(new FlowLayout(FlowLayout.CENTER, 1, 0));
+            jrow.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
             for (int row = 0; row < KEYS[line].length; row++) {
                 if (row == 0) {
                     SizedButton b;
@@ -215,7 +218,8 @@ public class Keyboard extends IODevice {
             content.add(jrow);
         }
 
-        JPanel jrow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        JPanel jrow = new JPanel(new FlowLayout(FlowLayout.CENTER, 1, 0));
+        jrow.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
         jrow.add(new FlagIndicator(ioctrl, 30));
 
         SizedButton latrus = new SizedButton("Lat/Рус");

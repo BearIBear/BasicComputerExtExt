@@ -57,20 +57,24 @@ public class RunningCycleView extends BCompComponent {
 	}
 
 	public void update() {
-		RunningCycle newcycle = cpu.getRunningCycle();
+		final RunningCycle newcycle = cpu.getRunningCycle();
 
 		if (newcycle != lastcycle) {
-			if (lastcycle != RunningCycle.STOP && lastcycle != RunningCycle.RESERVED)
-				labels[cycles.get(lastcycle)].setForeground(COLOR_TEXT);
-			if (newcycle != RunningCycle.STOP && newcycle != RunningCycle.RESERVED)
-			labels[cycles.get(newcycle)].setForeground(COLOR_ACTIVE);
+			final RunningCycle oldcycle = lastcycle;
 			lastcycle = newcycle;
+			SwingUtilities.invokeLater(() -> {
+				if (oldcycle != RunningCycle.STOP && oldcycle != RunningCycle.RESERVED)
+					labels[cycles.get(oldcycle)].setForeground(COLOR_TEXT);
+				if (newcycle != RunningCycle.STOP && newcycle != RunningCycle.RESERVED)
+					labels[cycles.get(newcycle)].setForeground(COLOR_ACTIVE);
+			});
 		}
-
 	}
 
-	public void updateProg(boolean prog){
-	labels[labels.length-1].setForeground(prog?COLOR_ACTIVE:COLOR_TEXT);
+	public void updateProg(final boolean prog){
+		SwingUtilities.invokeLater(() -> {
+			labels[labels.length-1].setForeground(prog?COLOR_ACTIVE:COLOR_TEXT);
+		});
 	}
 
 	@Override

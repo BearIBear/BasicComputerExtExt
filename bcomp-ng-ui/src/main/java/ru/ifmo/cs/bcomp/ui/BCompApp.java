@@ -64,6 +64,17 @@ public class BCompApp {
 			return;
 		}
 
+		if (app.equals("double")) {
+			CLI cli = new CLI(bcomp);
+			Thread cliThread = new Thread(() -> cli.cli(), "BComp-CLI");
+			cliThread.setDaemon(true);
+			cliThread.start();
+
+			GUI gui = new GUI(bcomp);
+			gui.gui();
+			return;
+		}
+
 		if (app.equals("cli")) {
 			CLI cli = new CLI(bcomp);
 			cli.cli();

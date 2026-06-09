@@ -33,9 +33,12 @@ public class FlagView extends JComponent  {
         this.title.setForeground(COLOR_TEXT);
         add(this.title);
     }
-    public void setActive(boolean active){
-        this.active=active;
-        setBackground(active?COLOR_TITLE:COLOR_VALUE);
+    public void setActive(final boolean active){
+        SwingUtilities.invokeLater(() -> {
+            this.active=active;
+            setBackground(active?COLOR_TITLE:COLOR_VALUE);
+            repaint();
+        });
     }
 
     @Override
