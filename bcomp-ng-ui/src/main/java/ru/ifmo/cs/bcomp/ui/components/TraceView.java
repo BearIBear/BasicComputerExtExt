@@ -17,8 +17,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static ru.ifmo.cs.bcomp.ui.components.DisplayStyles.*;
 
@@ -110,6 +115,57 @@ public class TraceView extends BCompPanel implements ActionListener {
         this.gui = gui;
         this.cpu = gui.getCPU();
         this.cmanager = gui.getComponentManager();
+
+        cpu.addDestination(ControlSignal.STOR, new DataDestination() {
+            @Override
+            public void setValue(long value) {
+                if (!isRun)
+                    return;
+                long addr = cpu.getRegValue(Reg.AR);
+
+                if (!writelist.contains(addr))
+                    writelist.add(addr);
+            }
+        });
+
+        cpu.setCPUStartListener(new Runnable() {
+            @Override
+            public void run() {
+                if (!isRun)
+                    return;
+                if (!printOnStop)
+                    return;
+                writelist.clear();
+                savedPointer = cpu.getRegValue(cpu.getClockState() ? Reg.IP : Reg.MP);
+                synchronized (stringRegsCsv) {
+                    stringRegsCsv.append(printRegsTitle());
+                }
+            }
+        });
+
+        cpu.setCPUStopListener(new Runnable() {
+            @Override
+            public void run() {
+                if (!isRun)
+                    return;
+                if (!printOnStop)
+                    return;
+
+                Long _addr = 0L;
+                if (!writelist.isEmpty())
+                    _addr = writelist.remove(0);
+
+                synchronized (stringRegsCsv) {
+                    stringRegsCsv.append(printRegs((_addr == 0L ? "" : "\t" + getMemory(_addr)),
+                            (_addr == 0L ? "" : "," + getMemoryCsv(_addr))));
+                    for (Long wraddr : writelist) {
+                        System.out.println(wraddr);
+                        setTrace(String.format(",%1$34s", "\t") + getMemory(wraddr) + "\n");
+                        stringRegsCsv.append(String.format(",%1$34s", ",") + getMemoryCsv(wraddr) + "\n");
+                    }
+                }
+            }
+        });
 
         JPanel mainPanel = new JPanel();
         JPanel leftPanel = new JPanel();
@@ -222,50 +278,11 @@ public class TraceView extends BCompPanel implements ActionListener {
                     if (!isContinue) {
                         printRegsTitle = true;
                         text.setText("");
-                        stringRegsCsv.setLength(0);
+                        synchronized (stringRegsCsv) {
+                            stringRegsCsv.setLength(0);
+                        }
                     } else
                         isContinue = false;
-
-                    cpu.addDestination(ControlSignal.STOR, new DataDestination() {
-                        @Override
-                        public void setValue(long value) {
-                            long addr = cpu.getRegValue(Reg.AR);
-
-                            if (!writelist.contains(addr))
-                                writelist.add(addr);
-                        }
-                    });
-
-                    cpu.setCPUStartListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!printOnStop)
-                                return;
-                            writelist.clear();
-                            savedPointer = cpu.getRegValue(cpu.getClockState() ? Reg.IP : Reg.MP);
-                            stringRegsCsv.append(printRegsTitle());
-                        }
-                    });
-
-                    cpu.setCPUStopListener(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!printOnStop)
-                                return;
-
-                            Long _addr = 0L;
-                            if (!writelist.isEmpty())
-                                _addr = writelist.remove(0);
-
-                            stringRegsCsv.append(printRegs((_addr == 0L ? "" : "\t" + getMemory(_addr)),
-                                    (_addr == 0L ? "" : "," + getMemoryCsv(_addr))));
-                            for (Long wraddr : writelist) {
-                                System.out.println(wraddr);
-                                setTrace(String.format(",%1$34s", "\t") + getMemory(wraddr) + "\n");
-                                stringRegsCsv.append(String.format(",%1$34s", ",") + getMemoryCsv(wraddr) + "\n");
-                            }
-                        }
-                    });
 
                     // Delay is managed by ComponentManager; no need to override tickFinishListener
 
@@ -280,7 +297,12 @@ public class TraceView extends BCompPanel implements ActionListener {
                                 cpu.executeContinue();
                             else {
                                 isRun = false;
-                                button.setText("Выполнить трассировку");
+                                SwingUtilities.invokeLater(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        button.setText("Выполнить трассировку");
+                                    }
+                                });
                                 break;
                             }
                         }
@@ -300,7 +322,7 @@ public class TraceView extends BCompPanel implements ActionListener {
         JTextField textField = new JTextField("", 10);
         bottomButtons.add(textField);
 
-        JButton btn1 = new JButton("Задать адрес началы программы");
+        JButton btn1 = new JButton("Задать адрес начала программы");
         btn1.setForeground(COLOR_TEXT);
         btn1.setBackground(COLOR_VALUE);
         setCustomButtonStyle(btn1);
@@ -308,10 +330,27 @@ public class TraceView extends BCompPanel implements ActionListener {
         btn1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Integer value = Integer.parseInt(textField.getText(), 16);
-                cpu.getRegister(Reg.IR).setValue(value);
-                cpu.executeSetAddr();
-                setTrace("IP установлен на 0x" + Integer.toHexString(value) + "\n");
+                String textVal = textField.getText().trim();
+                if (textVal.isEmpty()) {
+                    JOptionPane.showMessageDialog(gui, "Введите адрес в шестнадцатеричном формате!", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                String parsedVal = textVal;
+                if (parsedVal.toLowerCase().startsWith("0x")) {
+                    parsedVal = parsedVal.substring(2);
+                }
+                try {
+                    int value = Integer.parseInt(parsedVal, 16);
+                    if (value < 0 || value > 0x7ff) {
+                        JOptionPane.showMessageDialog(gui, "Адрес должен быть в диапазоне от 000 до 7FF!", "Ошибка", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    cpu.getRegister(Reg.IR).setValue(value);
+                    cpu.executeSetAddr();
+                    setTrace("IP установлен на 0x" + Integer.toHexString(value) + "\n");
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(gui, "Неверный формат шестнадцатеричного числа: " + textVal, "Ошибка", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -326,6 +365,7 @@ public class TraceView extends BCompPanel implements ActionListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new File("Трассировка.csv"));
                 int retval = fileChooser.showSaveDialog(gui);
                 if (retval == JFileChooser.APPROVE_OPTION) {
                     File file = fileChooser.getSelectedFile();
@@ -340,7 +380,11 @@ public class TraceView extends BCompPanel implements ActionListener {
                         try {
                             writer = new BufferedWriter(new FileWriter(file));
                             writer.write('\ufeff');
-                            writer.write(stringRegsCsv.toString());
+                            String csvData;
+                            synchronized (stringRegsCsv) {
+                                csvData = stringRegsCsv.toString();
+                            }
+                            writer.write(csvData);
                         } finally {
                             if (writer != null) {
                                 writer.close();
@@ -354,6 +398,41 @@ public class TraceView extends BCompPanel implements ActionListener {
         });
 
         bottomButtons.add(btn2);
+
+        JButton btnXlsx = new JButton("Экспорт в XLSX-файл");
+        btnXlsx.setForeground(COLOR_TEXT);
+        btnXlsx.setBackground(COLOR_VALUE);
+        setCustomButtonStyle(btnXlsx);
+        btnXlsx.setFont(FONT_COURIER_PLAIN_12);
+        btnXlsx.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new File("Трассировка.xlsx"));
+                int retval = fileChooser.showSaveDialog(gui);
+                if (retval == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    if (file == null) {
+                        return;
+                    }
+                    if (!file.getName().toLowerCase().endsWith(".xlsx")) {
+                        file = new File(file.getParentFile(), file.getName() + ".xlsx");
+                    }
+                    try {
+                        String csvData;
+                        synchronized (stringRegsCsv) {
+                            csvData = stringRegsCsv.toString();
+                        }
+                        exportToXlsx(csvData, file);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(gui, "Ошибка экспорта в XLSX: " + ex.getMessage(), "Ошибка", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
+
+        bottomButtons.add(btnXlsx);
 
         JButton btn3 = new JButton("Нажми на меня...");
         btn3.setForeground(COLOR_TEXT);
@@ -371,18 +450,23 @@ public class TraceView extends BCompPanel implements ActionListener {
         bottomButtons.add(btn3);
     }
 
-    public static void setTrace(String str) {
-        try {
-            StyleContext sc = StyleContext.getDefaultStyleContext();
-            AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, Color.WHITE);
+    public static void setTrace(final String str) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    StyleContext sc = StyleContext.getDefaultStyleContext();
+                    AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, Color.WHITE);
 
-            int len = text.getDocument().getLength();
-            text.setCaretPosition(len);
-            text.setCharacterAttributes(aset, false);
-            text.replaceSelection(str);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+                    int len = text.getDocument().getLength();
+                    text.setCaretPosition(len);
+                    text.setCharacterAttributes(aset, false);
+                    text.replaceSelection(str);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Override
@@ -408,5 +492,135 @@ public class TraceView extends BCompPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
 
+    }
+
+    private void exportToXlsx(String csvData, File file) throws Exception {
+        List<String[]> data = new ArrayList<>();
+        String[] lines = csvData.split("\n");
+        for (String line : lines) {
+            if (line.trim().isEmpty()) {
+                continue;
+            }
+            data.add(line.split(",", -1));
+        }
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file))) {
+            // 1. Write [Content_Types].xml
+            zos.putNextEntry(new ZipEntry("[Content_Types].xml"));
+            byte[] contentTypes = (
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\n" +
+                "  <Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>\n" +
+                "  <Default Extension=\"xml\" ContentType=\"application/xml\"/>\n" +
+                "  <Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>\n" +
+                "  <Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>\n" +
+                "</Types>"
+            ).getBytes(StandardCharsets.UTF_8);
+            zos.write(contentTypes);
+            zos.closeEntry();
+
+            // 2. Write _rels/.rels
+            zos.putNextEntry(new ZipEntry("_rels/.rels"));
+            byte[] rels = (
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
+                "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>\n" +
+                "</Relationships>"
+            ).getBytes(StandardCharsets.UTF_8);
+            zos.write(rels);
+            zos.closeEntry();
+
+            // 3. Write xl/workbook.xml
+            zos.putNextEntry(new ZipEntry("xl/workbook.xml"));
+            byte[] workbook = (
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">\n" +
+                "  <sheets>\n" +
+                "    <sheet name=\"Трассировка\" sheetId=\"1\" r:id=\"rId1\"/>\n" +
+                "  </sheets>\n" +
+                "</workbook>"
+            ).getBytes(StandardCharsets.UTF_8);
+            zos.write(workbook);
+            zos.closeEntry();
+
+            // 4. Write xl/_rels/workbook.xml.rels
+            zos.putNextEntry(new ZipEntry("xl/_rels/workbook.xml.rels"));
+            byte[] workbookRels = (
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
+                "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>\n" +
+                "</Relationships>"
+            ).getBytes(StandardCharsets.UTF_8);
+            zos.write(workbookRels);
+            zos.closeEntry();
+
+            // 5. Calculate column widths and write xl/worksheets/sheet1.xml
+            zos.putNextEntry(new ZipEntry("xl/worksheets/sheet1.xml"));
+            
+            int maxCols = 0;
+            for (String[] row : data) {
+                if (row.length > maxCols) maxCols = row.length;
+            }
+            int[] colWidths = new int[maxCols];
+            for (String[] row : data) {
+                for (int i = 0; i < row.length; i++) {
+                    int len = row[i] != null ? row[i].length() : 0;
+                    if (len > colWidths[i]) colWidths[i] = len;
+                }
+            }
+
+            StringBuilder sheetXml = new StringBuilder();
+            sheetXml.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
+            sheetXml.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">\n");
+            
+            if (maxCols > 0) {
+                sheetXml.append("  <cols>\n");
+                for (int i = 0; i < maxCols; i++) {
+                    int width = Math.max(colWidths[i] + 4, 10);
+                    sheetXml.append("    <col min=\"").append(i + 1).append("\" max=\"").append(i + 1)
+                            .append("\" width=\"").append(width).append("\" customWidth=\"1\"/>\n");
+                }
+                sheetXml.append("  </cols>\n");
+            }
+
+            sheetXml.append("  <sheetData>\n");
+            int rowNum = 1;
+            for (String[] rowData : data) {
+                sheetXml.append("    <row r=\"").append(rowNum).append("\">\n");
+                for (int colNum = 0; colNum < rowData.length; colNum++) {
+                    String val = rowData[colNum];
+                    if (val == null) continue;
+                    String ref = getColName(colNum) + rowNum;
+                    sheetXml.append("      <c r=\"").append(ref).append("\" t=\"inline\">\n");
+                    sheetXml.append("        <is><t>").append(escapeXml(val)).append("</t></is>\n");
+                    sheetXml.append("      </c>\n");
+                }
+                sheetXml.append("    </row>\n");
+                rowNum++;
+            }
+            sheetXml.append("  </sheetData>\n");
+            sheetXml.append("</worksheet>");
+
+            zos.write(sheetXml.toString().getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+    }
+
+    private String getColName(int col) {
+        StringBuilder sb = new StringBuilder();
+        while (col >= 0) {
+            sb.insert(0, (char) ('A' + (col % 26)));
+            col = (col / 26) - 1;
+        }
+        return sb.toString();
+    }
+
+    private String escapeXml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 }

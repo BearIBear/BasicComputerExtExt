@@ -321,6 +321,28 @@ public class MicroCode {
         new omc("RESERVED", cs()),
     };
 
+    private final String[] customLabels = new String[256];
+
+    public MicroCode() {
+        for (int i = 0; i < 256; i++) {
+            customLabels[i] = (i < MP.length) ? MP[i].label : null;
+        }
+    }
+
+    public void setLabel(int addr, String label) {
+        if (addr >= 0 && addr < 256) {
+            customLabels[addr] = label;
+        }
+    }
+
+    public String getOriginalLabel(int addr) {
+        return addr < MP.length ? MP[addr].label : null;
+    }
+
+    public long getOriginalMicroCommand(int addr) throws Exception {
+        return addr < MP.length ? MP[addr].getMicroCommand() : 0L;
+    }
+
     public int getMicroCodeLength() {
         return MP.length;
     }
@@ -330,15 +352,15 @@ public class MicroCode {
     }
 
     public int findLabel(String label) throws Exception {
-        for (int addr = 0; addr < MP.length; addr++)
-            if (label.equals(MP[addr].label))
+        for (int addr = 0; addr < 256; addr++)
+            if (label != null && label.equals(customLabels[addr]))
                 return addr;
 
         throw new Exception("Label '" + label + "' not found");
     }
 
     public String getLabel(int addr) {
-        return addr < MP.length ? MP[addr].label : null;
+        return (addr >= 0 && addr < 256) ? customLabels[addr] : null;
     }
 
 	private static ControlSignal[] cs(ControlSignal ... signals) {

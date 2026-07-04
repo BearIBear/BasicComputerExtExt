@@ -47,7 +47,8 @@ public class GUI extends JApplet {
 			new BasicView(this, isHex),
 			new AssemblerView(this),
 			new TraceView(this),
-            new DebugView(this)
+			new DebugView(this),
+			new MicrocommandsView(this)
 		};
 
 		tabs = new JTabbedPane(){
