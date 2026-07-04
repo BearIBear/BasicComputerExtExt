@@ -41,9 +41,13 @@ public class BCompApp {
 				AsmNg asm = new AsmNg(code);
 				Program pobj = asm.compile();
 				if (asm.getErrors().isEmpty()) {
+					for (String warn : asm.getWarnings())
+						System.out.println(warn);
 					ProgramBinary prog = new ProgramBinary(pobj.getBinaryFormat());
 					bcomp.loadProgram(prog);
 				} else {
+					for (String warn : asm.getWarnings())
+						System.out.println(warn);
 					for (String err : asm.getErrors())
 						System.out.println(err);
 				}

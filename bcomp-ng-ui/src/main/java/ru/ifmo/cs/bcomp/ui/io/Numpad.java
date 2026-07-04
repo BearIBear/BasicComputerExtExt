@@ -45,7 +45,7 @@ public class Numpad extends IODevice {
 
     @Override
     protected Component getContent() {
-        JPanel content = new JPanel(new GridLayout(4, 4, 1, 1));
+        final JPanel content = new JPanel(new GridLayout(4, 4, 1, 1));
         content.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
         content.add(buttons[0] = new NumButton("7", 0x7));
         content.add(buttons[1] = new NumButton("8", 0x8));
@@ -69,6 +69,21 @@ public class Numpad extends IODevice {
             public void setValue(long value) {
                 for (NumButton button : buttons)
                     button.setForeground(value == 0 ? ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT : ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_ACTIVE);
+                content.repaint();
+            }
+        });
+
+        content.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int buttonHeight = buttons[0].getHeight();
+                int fontSize = Math.max(12, buttonHeight / 3);
+                Font buttonFont = new Font("Courier New", Font.PLAIN, fontSize);
+                for (NumButton button : buttons) {
+                    if (button != null) {
+                        button.setFont(buttonFont);
+                    }
+                }
             }
         });
 

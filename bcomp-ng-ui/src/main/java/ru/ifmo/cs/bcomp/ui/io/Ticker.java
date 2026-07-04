@@ -32,22 +32,28 @@ public class Ticker extends OutputDevice {
                     ELEMENTS_COUNT * ELEMENT_FULL_SIZE + ELEMENT_SPACE,
                     ELEMENTS_HEIGHT * ELEMENT_FULL_SIZE + ELEMENT_SPACE);
             setMinimumSize(d);
-            setMaximumSize(d);
             setPreferredSize(d);
-            setSize(d);
         }
 
         @Override
         public void paintComponent(Graphics g) {
+            int width = getWidth();
+            int height = getHeight();
+            int c = Math.max(1, Math.min(width / ELEMENTS_COUNT, height / ELEMENTS_HEIGHT));
+            int s = Math.max(1, (c > 4) ? c - c / 3 : c - 1);
+            int xOffset = (width - ELEMENTS_COUNT * c) / 2;
+            int yOffset = (height - ELEMENTS_HEIGHT * c) / 2;
+            int pad = (c - s) / 2;
+
             for (int x = 0; x < ELEMENTS_COUNT; x++) {
                 int value = elements[(x + position) % ELEMENTS_COUNT];
 
                 for (int y = 0; y < ELEMENTS_HEIGHT; y++) {
                     g.setColor(((value >> (ELEMENTS_HEIGHT - y - 1)) & 1) == 1 ? LED_ON : LED_OFF);
                     g.fillRect(
-                            x * ELEMENT_FULL_SIZE + ELEMENT_SPACE,
-                            y * ELEMENT_FULL_SIZE + ELEMENT_SPACE,
-                            ELEMENT_SIZE, ELEMENT_SIZE);
+                            xOffset + x * c + pad,
+                            yOffset + y * c + pad,
+                            s, s);
                 }
             }
         }
@@ -63,13 +69,12 @@ public class Ticker extends OutputDevice {
     protected Component getContent() {
         JPanel content = new JPanel(new BorderLayout());
 
-        JPanel center = new JPanel(new FlowLayout());
-        center.add(ticker = new TickerString());
-        content.add(BorderLayout.CENTER, center);
+        content.add(BorderLayout.CENTER, ticker = new TickerString());
 
         JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT));
         north.add(getSleepSlider());
         north.add(getPowerChkBox());
+        north.add(new JLabel("Готовность:"));
         north.add(new FlagIndicator(ioctrl, 30));
         content.add(BorderLayout.NORTH, north);
 

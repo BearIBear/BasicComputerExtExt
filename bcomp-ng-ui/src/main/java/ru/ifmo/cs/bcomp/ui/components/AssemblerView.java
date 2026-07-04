@@ -101,7 +101,13 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 
 		JSplitPane splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, pane, errscroll);
 		splitpane.setDividerSize(4);
-		splitpane.setDividerLocation((int)(PANE_HEIGHT*0.8)); // TODO FIX ALL Layouts
+		splitpane.setResizeWeight(0.8);
+		splitpane.addComponentListener(new java.awt.event.ComponentAdapter() {
+			@Override
+			public void componentResized(java.awt.event.ComponentEvent e) {
+				splitpane.setDividerLocation(0.8);
+			}
+		});
 		add(splitpane);
 
 	}
@@ -151,6 +157,9 @@ public class AssemblerView extends BCompPanel implements ActionListener {
 		String st = "Start compilation at "+new Date(starttime)+"\n";
 		String ft = "Finish compilation at "+new Date(finishtime)+"\n";
 		errors = st;
+		for (String warn: asm.getWarnings()) {
+			errors = errors + warn + '\n';
+		}
 		for (String err: asm.getErrors()) {
 			errors = errors + err + '\n';
 		}

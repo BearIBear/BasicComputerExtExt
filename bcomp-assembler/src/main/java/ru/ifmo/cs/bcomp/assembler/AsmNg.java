@@ -51,6 +51,8 @@ public class AsmNg {
                         + "    WORD 0x12,?,0x13 ; komment\n"
                         + "");
         Program prog = asmng.compile();
+        System.out.println("-------warnings--------");
+        System.out.println(asmng.getWarnings());
         System.out.println("-------errors--------");
         System.out.println(asmng.getErrors());
         System.out.println("-------words--------");
@@ -67,6 +69,8 @@ public class AsmNg {
     private HashMap<String, Label> labels;
     private HashMap<Integer, MemoryWord> memory;
     private List<String> errors;
+    private List<String> warnings;
+    private Integer lastOrgAddress = null;
 
     protected AsmNg(CodePointCharStream program) {
         this.program = program;
@@ -79,6 +83,7 @@ public class AsmNg {
         errHandler = new AssemblerAntlrErrorStrategy();
         parser.setErrorHandler(errHandler);
         errors = new ArrayList<String>();
+        warnings = new ArrayList<String>();
         ANTLRErrorListener lsnr = new AsmNGErrorListener(errors);
         lexer.removeErrorListeners();
         parser.removeErrorListeners();
@@ -87,8 +92,7 @@ public class AsmNg {
     }
 
     public AsmNg(String program) {
-        //TODO fix grammar prog statement
-        this(CharStreams.fromString(program+"\n"));
+        this(CharStreams.fromString(program));
     }
 
     public BCompNGParser getParser() {
@@ -97,6 +101,10 @@ public class AsmNg {
 
     public List<String> getErrors() {
         return errors;
+    }
+
+    public List<String> getWarnings() {
+        return warnings;
     }
 
     public Program compile() {
@@ -116,6 +124,7 @@ public class AsmNg {
     }
 
     protected void firstPass() {
+        lastOrgAddress = null;
         RuleContext tree = getParser().prog();
         ParseTreeWalker walker = new ParseTreeWalker();
         BCompNGListener fp = new BCompNGBaseListener() {
@@ -143,7 +152,7 @@ public class AsmNg {
                     if (instr == null) {
                         //parser has instruction description but ASM NG has not
                         //add new instruction to method instructionByParserType and Instruction
-                        reportAndRecoverFromError(new AssemblerException("Internal error: Parser has instruction but assebler hasn't", parser, ICtx));
+                        reportAndRecoverFromError(new AssemblerException(formatError("First pass", "parser has instruction but assembler hasn't"), parser, ICtx));
                         return;
                     }
                     i.instruction = instr;
@@ -166,7 +175,7 @@ public class AsmNg {
                         i.operand.reference = new String(ICtx.label().getText());
                     }
                     if (instr.type == Instruction.Type.IO) {
-                        AssemblerException ae = new AssemblerException("Device or vector shall be valid number", parser, ICtx);
+                        AssemblerException ae = new AssemblerException(formatError("First pass", "device or vector shall be valid number"), parser, ICtx);
                         if (ICtx.dev() == null) {
                             reportAndRecoverFromError(ae);return;
                         }
@@ -223,7 +232,7 @@ public class AsmNg {
                     Integer count = parseIntFromNumberContext(dactx.count().number());
                     if (count <= 1) {
                         //throw new RuntimeException("Internal error: count should be greater than 1");
-                        reportError(new AssemblerException("DUP count should be greater than 1", parser, dactx));
+                        reportError(new AssemblerException(formatError("First pass", "DUP count should be greater than 1"), parser, dactx));
                         return;
                     }
                     WordArgumentContext what = dactx.wordArgument();
@@ -254,11 +263,9 @@ public class AsmNg {
                 lab.name = new String(ctx.label().getText());
                 lab.address = address;
                 if (labels.containsKey(lab.name)) {
-                    //TODO FIX IT with common error message
-                    reportAndRecoverFromError(new AssemblerException("Error: already defined label " + lab.name, parser, ctx));
+                    reportAndRecoverFromError(new AssemblerException(formatError("First pass", "already defined label " + lab.name), parser, ctx));
                     return;
                 }
-                //TODO fix this special case for start label
                 if ("START".equalsIgnoreCase(lab.name)) {
                     labels.put(lab.name, lab);
                     lab.name = "START";
@@ -271,7 +278,16 @@ public class AsmNg {
             public void exitOrgAddress(OrgAddressContext ctx) {
                 NumberContext n = ctx.address().number();
                 Integer i = parseIntFromNumberContext(n);
+                if (i == null) {
+                    reportAndRecoverFromError(new AssemblerException(formatError("First pass", "ORG address is empty or invalid"), parser, ctx));
+                    return;
+                }
+                if (i < 0 || i > MemoryWord.MAX_ADDRESS) {
+                    reportAndRecoverFromError(new AssemblerException(formatError("First pass", "ORG address 0x" + Integer.toHexString(i) + " out of range [0..0x7FF]"), parser, ctx));
+                    return;
+                }
                 address = i;
+                lastOrgAddress = i;
                 //System.out.println("ORG to address "+i);
             }
 
@@ -282,7 +298,7 @@ public class AsmNg {
     protected Program secondPass() {
         if (memory.keySet().isEmpty()) {
             //we need to stop compiling. Cant compile nothing
-            AssemblerException ae = new AssemblerException("Second pass failed: no instruction was compiled on first pass.", parser);
+            AssemblerException ae = new AssemblerException(formatError("Second pass", "no instruction was compiled on first pass"), parser);
             reportError(ae);
             return null;
         }
@@ -292,7 +308,7 @@ public class AsmNg {
         //
         Collections.sort(addresses);
         prog.load_address = addresses.getFirst();
-        prog.start_address = prog.load_address;
+        prog.start_address = (lastOrgAddress != null) ? lastOrgAddress : prog.load_address;
         if (labels.containsKey("START")) {
             prog.start_address = labels.get("START").address;
         }
@@ -314,13 +330,13 @@ public class AsmNg {
                     case IO:
                         if (iw.instruction.opcode == Instruction.INT.opcode) {
                             if (iw.device < 0 || iw.device > 7) {
-                                reportError(new AssemblerException("Second pass: vector exceed limits [0..7]",parser));
+                                reportError(new AssemblerException(formatError("Second pass", "vector exceed limits [0..7]"),parser));
                             }
                             iw.value = iw.instruction.opcode | iw.device;
                             break;
                         }
                         if (iw.device < 0 || iw.device > 255) {
-                            reportError(new AssemblerException("Second pass: device number exceed limits [0..0xff]",parser));
+                            reportError(new AssemblerException(formatError("Second pass", "device number exceed limits [0..0xff]"),parser));
                         }
                         iw.value = iw.instruction.opcode | iw.device;
                         break;
@@ -328,8 +344,7 @@ public class AsmNg {
             }
             if (w.value_addr_reference != null) {
                 if (!labels.containsKey(w.value_addr_reference)) {
-                    //TODO error
-                    reportError(new AssemblerException("Second pass: Label " + w.value_addr_reference + " not found", parser));
+                    reportError(new AssemblerException(formatError("Second pass", "label " + w.value_addr_reference + " not found"), parser));
                 } else {
                     Label l = labels.get(w.value_addr_reference);
                     w.value = l.address;
@@ -552,7 +567,7 @@ public class AsmNg {
         AddressingMode am = new AddressingMode();
         ParseTree pt = octx.getChild(0);
         if (pt == null | !(pt instanceof RuleContext)) {
-            throw new AssemblerException("Internal error: after parser addressing mode cant be null and should be RuleContext", parser);
+            throw new AssemblerException(formatError("Internal error", "after parser addressing mode can't be null and should be RuleContext"), parser);
         }
         //System.out.println("!!!"+((RuleContext)pt).getRuleIndex());
         switch (((RuleContext) pt).getRuleIndex()) {
@@ -588,18 +603,17 @@ public class AsmNg {
                 break;
             case BCompNGParser.RULE_directLoad:
                 am.addressation = AddressingMode.AddressingType.DIRECT_LOAD;
-                //TODO
                 am.number = parseIntFromNumberContext(octx.directLoad().number());
                 break;
             default:
-                throw new AssemblerException("Internal error: Wrong OperandContext while parsing addressing mode",parser);
+                throw new AssemblerException(formatError("Internal error", "wrong OperandContext while parsing addressing mode"),parser);
         }
         return am;
     }
 
     private String referenceByLabelContext(LabelContext lctx) {
         if (lctx == null) {
-            AssemblerException ae =  new AssemblerException("Internal error: LabelContex cant be null here",parser);
+            AssemblerException ae =  new AssemblerException(formatError("Internal error", "LabelContext can't be null here"),parser);
             reportError(ae);
         }
         //make String copy. Do not remove new String(..)
@@ -618,14 +632,13 @@ public class AsmNg {
                 }
                 if (iw.operand.reference != null) {
                     if (!labels.containsKey(iw.operand.reference)) {
-                        reportError(new AssemblerException("Second pass: label refference "+iw.operand.reference+" not found",parser));
+                        reportError(new AssemblerException(formatError("Second pass", "label reference "+iw.operand.reference+" not found"),parser));
                     } else {
                         num = labels.get(iw.operand.reference).address;
                     }
                 }
                 if ((num > MemoryWord.MAX_ADDRESS) || (num < 0)) {
-                    //TODO error number exceed limit values
-                    reportError(new AssemblerException("Second pass: memory address 0x"+Integer.toHexString(num)+" out of range [0..0x7FF]",parser));
+                    reportError(new AssemblerException(formatError("Second pass", "memory address 0x"+Integer.toHexString(num)+" out of range [0..0x7FF]"),parser));
                 }
                 iw.value = iw.instruction.opcode | (num & MemoryWord.MAX_ADDRESS);
                 break;
@@ -642,10 +655,10 @@ public class AsmNg {
                 if (iw.operand.number != MemoryWord.UNDEFINED) {
                     num = iw.operand.number;
                 } else {
-                    reportError(new AssemblerException("Second pass: number shoud present in command",parser));
+                    reportError(new AssemblerException(formatError("Second pass", "number should present in command"),parser));
                 }
                 if (num > 127 || num < -128) {
-                    reportError(new AssemblerException("Second pass: number exceed limits [-127..128]",parser));
+                    reportError(new AssemblerException(formatError("Second pass", "number exceed limits [-128..127]"),parser));
                 }
                 iw.value = iw.instruction.opcode | 0x0C00 | (num & 0xFF);
                 break;
@@ -656,17 +669,17 @@ public class AsmNg {
                 if (iw.operand.number != MemoryWord.UNDEFINED) {
                     num = iw.operand.number;
                 } else {
-                    reportError(new AssemblerException("Second pass: number shoud present in command",parser));
+                    reportError(new AssemblerException(formatError("Second pass", "number should present in command"),parser));
                 }
                 if (num > 255 || num < -128) {
-                    //TODO error number exceed limit values
-                    throw new AssemblerException(parser);
-                    //throw new RuntimeException("Internal error: ");
+                    reportError(new AssemblerException(formatError("Second pass", "number exceed limits [-128..255]"), parser));
+                } else if (num > 127) {
+                    warnings.add("Second pass: number " + num + " exceeds signed 8-bit limits [-128..127] and will be sign-extended to 16-bit");
                 }
                 iw.value = iw.instruction.opcode | 0x0F00 | (num & 0xFF);
                 break;
             default:
-                reportError(new AssemblerException("Second pass: addressing mode is not properly defined",parser));
+                reportError(new AssemblerException(formatError("Second pass", "addressing mode is not properly defined"),parser));
         }
     }
 
@@ -678,21 +691,23 @@ public class AsmNg {
             reference = iw.operand.reference;
         }
         if (!labels.containsKey(reference)) {
-            //TODO error
-            AssemblerException ae = new AssemblerException("Second pass: label refference "+reference+" not found",parser);
+            AssemblerException ae = new AssemblerException(formatError("Second pass", "label reference "+reference+" not found"),parser);
             reportError(ae);
             return 0;
         }
         Label l = labels.get(reference);
         l.referenced = true;
         num = l.address - iw.address - 1; //-1 to fix impact of fetch cycle
-        //TODO FIX
         if (num > 127 || num < -128) {
-            AssemblerException ae = new AssemblerException("Second pass: label "+reference+" displacement exceed limits [-127..128]",parser);
+            AssemblerException ae = new AssemblerException(formatError("Second pass", "label "+reference+" displacement exceed limits [-128..127]"),parser);
             reportError(ae);
             num = 0;
         }
         return num & 0xFF;
+    }
+
+    private static String formatError(String phase, String message) {
+        return phase + ": " + message;
     }
 
     private void reportError(AssemblerException ae) {

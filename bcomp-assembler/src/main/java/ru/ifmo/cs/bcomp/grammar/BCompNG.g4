@@ -1,7 +1,7 @@
 grammar BCompNG;
 
 prog
-   : (line? EOL)*
+   : (line? EOL)* line? EOF
    ;
 
 line

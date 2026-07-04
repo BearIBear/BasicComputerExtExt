@@ -51,10 +51,10 @@ public class TextPrinter extends OutputDevice {
         north.add(new JLabel("Кодировка"));
         north.add(charsetbox);
 
-        north.add(new JLabel("Задержка"));
         north.add(getSleepSlider());
 
         north.add(getPowerChkBox());
+        north.add(new JLabel("Готовность:"));
         north.add(new FlagIndicator(ioctrl, 30));
 
         content.add(BorderLayout.NORTH, north);

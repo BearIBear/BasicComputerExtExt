@@ -77,15 +77,21 @@ public class Keyboard extends IODevice {
     };
 
     private final ArrayList<Key> keys = new ArrayList<Key>();
+    private final ArrayList<SizedButton> allButtons = new ArrayList<SizedButton>();
     private String charset;
 
     private class SizedButton extends JButton {
-        public SizedButton(final String title) {
+        private final Dimension defaultSize;
+
+        public SizedButton(final String title, Dimension defaultSize) {
             super(title);
+            this.defaultSize = defaultSize;
             setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_VALUE);
             setForeground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT);
             setMargin(new java.awt.Insets(0, 0, 0, 0));
             ru.ifmo.cs.bcomp.ui.components.DisplayStyles.setCustomButtonStyle(this);
+            buttonSetSize(defaultSize);
+            allButtons.add(this);
         }
 
         public final void buttonSetSize(Dimension d) {
@@ -104,7 +110,7 @@ public class Keyboard extends IODevice {
         private boolean caps = false;
 
         public Key(String values[]) {
-            super(values[0]);
+            super(values[0], DIMS);
 
             this.values = values;
             this.active = values[0];
@@ -140,7 +146,7 @@ public class Keyboard extends IODevice {
 
     @Override
     protected Component getContent() {
-        JPanel content = new JPanel(new GridLayout(5, 1, 0, 1));
+        final JPanel content = new JPanel(new GridLayout(5, 1, 0, 1));
         content.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
 
         for (int line = 0; line < KEYS.length; line++) {
@@ -153,8 +159,7 @@ public class Keyboard extends IODevice {
                     switch (line) {
                         case 1:
                             // Tab
-                            b = new SizedButton("<html>&rarr;</html>");
-                            b.buttonSetSize(new Dimension(60, 30));
+                            b = new SizedButton("<html>&rarr;</html>", new Dimension(60, 30));
                             b.addActionListener(new ActionListener() {
                                 @Override
                                 public void actionPerformed(ActionEvent e) {
@@ -165,8 +170,7 @@ public class Keyboard extends IODevice {
                             break;
 
                         case 2:
-                            b = new SizedButton("Caps");
-                            b.buttonSetSize(new Dimension(75, 30));
+                            b = new SizedButton("Caps", new Dimension(75, 30));
                             b.addActionListener(new ActionListener() {
                                 @Override
                                 public void actionPerformed(ActionEvent e) {
@@ -174,6 +178,8 @@ public class Keyboard extends IODevice {
                                         key.caps = !key.caps;
                                         key.setActiveLayout();
                                     }
+                                    content.revalidate();
+                                    content.repaint();
                                 }
                             });
                             jrow.add(b);
@@ -191,8 +197,7 @@ public class Keyboard extends IODevice {
                     // Backspace
                     switch (line) {
                         case 0:
-                            b = new SizedButton("<html>&larr;</html>");
-                            b.buttonSetSize(new Dimension(60, 30));
+                            b = new SizedButton("<html>&larr;</html>", new Dimension(60, 30));
                             b.addActionListener(new ActionListener() {
                                 @Override
                                 public void actionPerformed(ActionEvent e) {
@@ -203,8 +208,7 @@ public class Keyboard extends IODevice {
                             break;
 
                         case 2:
-                            b = new SizedButton("Enter");
-                            b.buttonSetSize(new Dimension(75, 30));
+                            b = new SizedButton("Enter", new Dimension(75, 30));
                             b.addActionListener(new ActionListener() {
                                 @Override
                                 public void actionPerformed(ActionEvent e) {
@@ -220,10 +224,12 @@ public class Keyboard extends IODevice {
 
         JPanel jrow = new JPanel(new FlowLayout(FlowLayout.CENTER, 1, 0));
         jrow.setBackground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_BACKGROUND);
+        JLabel readyLabel = new JLabel("Готовность:");
+        readyLabel.setForeground(ru.ifmo.cs.bcomp.ui.components.DisplayStyles.COLOR_TEXT);
+        jrow.add(readyLabel);
         jrow.add(new FlagIndicator(ioctrl, 30));
 
-        SizedButton latrus = new SizedButton("Lat/Рус");
-        latrus.buttonSetSize(new Dimension(120, 30));
+        SizedButton latrus = new SizedButton("Lat/Рус", new Dimension(120, 30));
         latrus.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -231,12 +237,13 @@ public class Keyboard extends IODevice {
                     key.lang = key.lang == Lang.EN ? Lang.RU : Lang.EN;
                     key.setActiveLayout();
                 }
+                content.revalidate();
+                content.repaint();
             }
         });
         jrow.add(latrus);
 
-        SizedButton space = new SizedButton(" ");
-        space.buttonSetSize(new Dimension(300, 30));
+        SizedButton space = new SizedButton(" ", new Dimension(300, 30));
         space.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -255,6 +262,32 @@ public class Keyboard extends IODevice {
         });
         jrow.add(charsetbox);
         content.add(jrow);
+
+        content.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                int W = content.getWidth();
+                int H = content.getHeight();
+                double scaleX = W / 660.0;
+                double scaleY = H / 155.0;
+                double scale = Math.max(0.5, Math.min(scaleX, scaleY));
+
+                Font buttonFont = new Font("Courier New", Font.PLAIN, (int)(12 * scale));
+
+                for (SizedButton b : allButtons) {
+                    int newW = (int)(b.defaultSize.width * scale);
+                    int newH = (int)(b.defaultSize.height * scale);
+                    Dimension d = new Dimension(newW, newH);
+                    b.setFont(buttonFont);
+                    b.setSize(d);
+                    b.setMinimumSize(d);
+                    b.setMaximumSize(d);
+                    b.setPreferredSize(d);
+                }
+                content.revalidate();
+                content.repaint();
+            }
+        });
 
         return content;
     }

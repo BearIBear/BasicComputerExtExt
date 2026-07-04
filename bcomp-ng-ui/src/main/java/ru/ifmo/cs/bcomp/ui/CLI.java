@@ -363,6 +363,9 @@ public class CLI {
 					printOnStop = false;
 					AsmNg asm = new AsmNg(code);
 					Program pobj = asm.compile();
+					for (String warn : asm.getWarnings()) {
+						println(warn);
+					}
 					if (asm.getErrors().isEmpty()) {
 						ProgramBinary prog = new ProgramBinary(pobj.getBinaryFormat());
 						bcomp.loadProgram(prog);

@@ -57,19 +57,37 @@ public class SevenSegmentDisplay extends OutputDevice {
 
         public SSD() {
             setMinimumSize(DIMS);
-            setMaximumSize(DIMS);
             setPreferredSize(DIMS);
-            setSize(DIMS);
         }
 
 
         @Override
         public void paintComponent(Graphics g) {
-            for (int i = 0; i < COORDINATES.length; i++) {
+            int W = getWidth();
+            int H = getHeight();
+            int k = Math.max(1, Math.min(W / 24, H / 42));
+            int segLength = 16 * k;
+            int segWidth = 2 * k;
+            int digitW = segLength + 4 * segWidth;
+            int digitH = 2 * segLength + 5 * segWidth;
+            int xOffset = (W - digitW) / 2;
+            int yOffset = (H - digitH) / 2;
+
+            int coordinates[][] = new int[][] {
+                {xOffset + 2 * segWidth, yOffset + segWidth, segLength, segWidth}, // Верх
+                {xOffset + 2 * segWidth, yOffset + segLength + 2 * segWidth, segLength, segWidth}, // Середина
+                {xOffset + 2 * segWidth, yOffset + 2 * segLength + 3 * segWidth, segLength, segWidth}, // Низ
+                {xOffset + segWidth, yOffset + 2 * segWidth, segWidth, segLength}, // Левый верх
+                {xOffset + segWidth, yOffset + segLength + 3 * segWidth, segWidth, segLength}, // Левый низ
+                {xOffset + segLength + 2 * segWidth, yOffset + 2 * segWidth, segWidth, segLength}, // Правый верх
+                {xOffset + segLength + 2 * segWidth, yOffset + segLength + 3 * segWidth, segWidth, segLength}, // Правый низ
+            };
+
+            for (int i = 0; i < coordinates.length; i++) {
                 g.setColor(NUMBERS[value][i] ? LED_ON : LED_OFF);
                 g.fillRect(
-                        COORDINATES[i][0], COORDINATES[i][1],
-                        COORDINATES[i][2], COORDINATES[i][3]);
+                        coordinates[i][0], coordinates[i][1],
+                        coordinates[i][2], coordinates[i][3]);
             }
         }
     }
@@ -86,13 +104,14 @@ public class SevenSegmentDisplay extends OutputDevice {
     protected Component getContent() {
         JPanel content = new JPanel(new BorderLayout());
 
-        JPanel center = new JPanel(new FlowLayout());
+        JPanel center = new JPanel(new GridLayout(1, COUNT, 5, 5));
         for (int i = COUNT; i > 0; center.add(ssd[--i] = new SSD()));
         content.add(BorderLayout.CENTER, center);
 
         JPanel north = new JPanel(new FlowLayout(FlowLayout.LEFT));
         north.add(getSleepSlider());
         north.add(getPowerChkBox());
+        north.add(new JLabel("Готовность:"));
         north.add(new FlagIndicator(ioctrl, 30));
         content.add(BorderLayout.NORTH, north);
 
