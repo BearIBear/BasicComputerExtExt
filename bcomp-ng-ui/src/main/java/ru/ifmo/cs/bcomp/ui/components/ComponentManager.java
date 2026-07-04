@@ -386,7 +386,8 @@ public class ComponentManager {
 		synchronized (lockActivePanel) {
 			activePanel = component;
 			bcomp.addDestination(listeners);
-			bcomp.addDestination(activePanel.getSignalListeners());
+			if (activePanel.getSignalListeners() != null)
+				bcomp.addDestination(activePanel.getSignalListeners());
 		}
 		buttonsPanel.setPreferredSize(buttonsPanel.getSize());
 
@@ -423,7 +424,8 @@ public class ComponentManager {
 	public void panelDeactivate() {
 		synchronized (lockActivePanel) {
 			bcomp.removeDestination(listeners);
-			bcomp.removeDestination(activePanel.getSignalListeners());
+			if (activePanel != null && activePanel.getSignalListeners() != null)
+				bcomp.removeDestination(activePanel.getSignalListeners());
 			activePanel = null;
 		}
 	}

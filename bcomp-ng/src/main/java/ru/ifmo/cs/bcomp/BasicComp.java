@@ -46,6 +46,7 @@ public class BasicComp {
 	}
 
 	public void addDestination(SignalListener[] listeners) {
+		if (listeners == null) return;
 		cpu.tickLock();
 		try {
 			for (SignalListener listener : listeners)
@@ -57,6 +58,7 @@ public class BasicComp {
 	}
 
 	public void removeDestination(SignalListener[] listeners) {
+		if (listeners == null) return;
 		cpu.tickLock();
 		try {
 			for (SignalListener listener : listeners)

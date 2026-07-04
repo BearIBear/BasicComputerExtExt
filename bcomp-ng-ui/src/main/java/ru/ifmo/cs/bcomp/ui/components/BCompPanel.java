@@ -54,6 +54,7 @@ public abstract class BCompPanel extends ActivateblePanel {
 	}
 
 	private void drawBuses(Graphics g) {
+		if (busesMap == null) return;
 		ArrayList<BusView> openbuses = new ArrayList<BusView>();
 		List<ControlSignal> signals = cmanager.getActiveSignals();
 
@@ -72,6 +73,7 @@ public abstract class BCompPanel extends ActivateblePanel {
 	private void drawOpenBuses(Color color) {
 		Graphics g = getGraphics();
 		if (g == null) return;
+		if (busesMap == null) return;
 		List<ControlSignal> signals = cmanager.getActiveSignals();
 
 		for (BusView bus : busesMap.values())
@@ -98,23 +100,27 @@ public abstract class BCompPanel extends ActivateblePanel {
 
 		cmanager.panelActivate(this);
 
-		for (RegisterProperties prop : regProps) {
-			RegisterView reg = cmanager.getRegisterView(prop.reg);
-			reg.setProperties(prop.x, prop.y, prop.hex,prop.isLeft);
-			reg.setPreferredSize(reg.getSize());
-			reg.setTitle(prop.reg.toString());
-			regPanel.add(reg, prop.constraints);
-			
-			if (prop.reg == Reg.CR && reg.getDecodedLabel() != null) {
-				JLabel lbl = reg.getDecodedLabel();
-				lbl.setPreferredSize(new Dimension(200, 20));
+		if (regProps != null) {
+			for (RegisterProperties prop : regProps) {
+				RegisterView reg = cmanager.getRegisterView(prop.reg);
+				reg.setProperties(prop.x, prop.y, prop.hex,prop.isLeft);
+				reg.setPreferredSize(reg.getSize());
+				reg.setTitle(prop.reg.toString());
+				regPanel.add(reg, prop.constraints);
 				
-				GridBagConstraints c = (GridBagConstraints) prop.constraints.clone();
-				// Use the same cell but push it up so it sits immediately above the register
-				c.insets = new Insets(0, prop.constraints.insets.left, reg.getSize().height + 15, 0);
-				regPanel.add(lbl, c);
+				if (prop.reg == Reg.CR && reg.getDecodedLabel() != null) {
+					JLabel lbl = reg.getDecodedLabel();
+					lbl.setPreferredSize(new Dimension(200, 20));
+					
+					GridBagConstraints c = (GridBagConstraints) prop.constraints.clone();
+					// Use the same cell but push it up so it sits immediately above the register
+					c.insets = new Insets(0, prop.constraints.insets.left, reg.getSize().height + 15, 0);
+					regPanel.add(lbl, c);
+				}
 			}
 		}
+		revalidate();
+		repaint();
 	}
 
 	@Override
@@ -125,6 +131,7 @@ public abstract class BCompPanel extends ActivateblePanel {
 	@Override
 	public void paintComponent(Graphics g) {
         DisplayStyles.setGraphics(g, this);
+        redrawArrows();
 		drawBuses(g);
 	}
 }
