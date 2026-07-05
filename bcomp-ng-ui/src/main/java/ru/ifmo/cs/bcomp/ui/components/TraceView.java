@@ -44,6 +44,7 @@ public class TraceView extends BCompPanel implements ActionListener {
 
     private boolean isRun = false;
     private boolean isContinue = false;
+    private boolean originalClockState = true;
 
     private String getReg(Reg reg) {
         return Utils.toHex(cpu.getRegValue(reg), cpu.getRegWidth(reg));
@@ -58,16 +59,16 @@ public class TraceView extends BCompPanel implements ActionListener {
         StringBuilder stringBuilderCsv = new StringBuilder();
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append("Адр\t" + (cpu.getClockState() ? "Знчн" : "МК"));
-        stringBuilderCsv.append("Адр," + (cpu.getClockState() ? "Знчн" : "МК"));
+        stringBuilder.append("Адр\tЗнчн");
+        stringBuilderCsv.append("Адр,Знчн");
         for (Reg reg : printRegs) {
             int width = (int) Math.ceil(cpu.getRegWidth(reg) / 4.0);
             int l = (int) Math.ceil((width - reg.name().length()) / 2.0);
             stringBuilder.append(String.format("\t%s", reg.name()));
             stringBuilderCsv.append(String.format(",%s", reg.name()));
         }
-        stringBuilder.append("\tNZVC" + (cpu.getClockState() ? "\tАдр" + "\tЗнчн" : "\tСчМК") + "\n");
-        stringBuilderCsv.append(",NZVC" + (cpu.getClockState() ? ",Адр,Знчн" : "СчМК") + "\n");
+        stringBuilder.append("\tNZVC\tАдр\tЗнчн\n");
+        stringBuilderCsv.append(",NZVC,Адр,Знчн\n");
         printRegsTitle = false;
 
         setTrace(stringBuilder.toString());
@@ -79,13 +80,9 @@ public class TraceView extends BCompPanel implements ActionListener {
         StringBuilder stringBuilderRegsCsv = new StringBuilder();
         StringBuilder stringBuilder = new StringBuilder();
 
-        stringBuilder.append((cpu.getClockState() ? getMemory(savedPointer) + "\t"
-                : Utils.toHex(savedPointer, 8) +
-                        Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + "\t"));
+        stringBuilder.append(getMemory(savedPointer) + "\t");
 
-        stringBuilderRegsCsv.append((cpu.getClockState() ? getMemoryCsv(savedPointer) + ","
-                : Utils.toHex(savedPointer, 8) + "," +
-                        Utils.toHex(cpu.getMicroCode().getValue(savedPointer), 40) + ","));
+        stringBuilderRegsCsv.append(getMemoryCsv(savedPointer) + ",");
 
         for (Reg reg : printRegs) {
             stringBuilder.append(getReg(reg) + "\t");
@@ -93,10 +90,10 @@ public class TraceView extends BCompPanel implements ActionListener {
         }
 
         stringBuilder.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF, 4)
-                + (cpu.getClockState() ? add : getReg(Reg.MP)) + "\n");
+                + add + "\n");
 
         stringBuilderRegsCsv.append(Utils.toBinary(cpu.getRegValue(Reg.PS) & 0xF, 4)
-                + (cpu.getClockState() ? addCsv : getReg(Reg.MP)) + "\n");
+                + addCsv + "\n");
 
         setTrace(stringBuilder.toString());
         return stringBuilderRegsCsv.toString();
@@ -136,7 +133,7 @@ public class TraceView extends BCompPanel implements ActionListener {
                 if (!printOnStop)
                     return;
                 writelist.clear();
-                savedPointer = cpu.getRegValue(cpu.getClockState() ? Reg.IP : Reg.MP);
+                savedPointer = cpu.getRegValue(Reg.IP);
                 synchronized (stringRegsCsv) {
                     stringRegsCsv.append(printRegsTitle());
                 }
@@ -286,6 +283,9 @@ public class TraceView extends BCompPanel implements ActionListener {
 
                     // Delay is managed by ComponentManager; no need to override tickFinishListener
 
+                    originalClockState = cpu.getClockState();
+                    cpu.setClockState(true);
+
                     // sleep = sleeptime;
                     new Thread(() -> {
                         cpu.startStart();
@@ -306,6 +306,7 @@ public class TraceView extends BCompPanel implements ActionListener {
                                 break;
                             }
                         }
+                        cpu.setClockState(originalClockState);
                     }).start();
 
                 } else {
