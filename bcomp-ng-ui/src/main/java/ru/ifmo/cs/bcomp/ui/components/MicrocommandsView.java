@@ -17,16 +17,35 @@ public class MicrocommandsView extends BCompPanel {
     private final MicrocommandsTableModel tableModel;
     private long currentMP = -1;
     private boolean showWarning = true;
+    private final java.util.concurrent.atomic.AtomicBoolean updatePending = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private final javax.swing.Timer updateTimer;
+    private volatile long pendingMP = -1;
 
     public MicrocommandsView(GUI gui) {
         super(gui.getComponentManager(), null, null);
         this.cpu = gui.getCPU();
         this.currentMP = cpu.getRegister(Reg.MP).getValue();
-
         setLayout(new BorderLayout());
 
         tableModel = new MicrocommandsTableModel();
         table = new JTable(tableModel);
+
+        updateTimer = new javax.swing.Timer(40, e -> {
+            updatePending.set(false);
+            long targetMP = pendingMP;
+            if (targetMP != currentMP) {
+                long oldMP = currentMP;
+                currentMP = targetMP;
+                if (oldMP >= 0 && oldMP < 256) {
+                    tableModel.fireTableRowsUpdated((int) oldMP, (int) oldMP);
+                }
+                if (currentMP >= 0 && currentMP < 256) {
+                    tableModel.fireTableRowsUpdated((int) currentMP, (int) currentMP);
+                    table.scrollRectToVisible(table.getCellRect((int) currentMP, 0, true));
+                }
+            }
+        });
+        updateTimer.setRepeats(false);
         table.setBackground(DisplayStyles.COLOR_BACKGROUND);
         table.setForeground(DisplayStyles.COLOR_TEXT);
         table.setGridColor(new Color(50, 60, 70));
@@ -161,6 +180,7 @@ public class MicrocommandsView extends BCompPanel {
             if (currentMP >= 0 && currentMP < 256) {
                 table.scrollRectToVisible(table.getCellRect((int) currentMP, 0, true));
             }
+            table.requestFocusInWindow();
         });
     }
 
@@ -172,20 +192,14 @@ public class MicrocommandsView extends BCompPanel {
     @Override
     public void stepFinish() {
         super.stepFinish();
-        SwingUtilities.invokeLater(() -> {
-            long newMP = cpu.getRegister(Reg.MP).getValue();
-            if (newMP != currentMP) {
-                long oldMP = currentMP;
-                currentMP = newMP;
-                if (oldMP >= 0 && oldMP < 256) {
-                    tableModel.fireTableRowsUpdated((int) oldMP, (int) oldMP);
+        pendingMP = cpu.getRegister(Reg.MP).getValue();
+        if (updatePending.compareAndSet(false, true)) {
+            SwingUtilities.invokeLater(() -> {
+                if (!updateTimer.isRunning()) {
+                    updateTimer.start();
                 }
-                if (currentMP >= 0 && currentMP < 256) {
-                    tableModel.fireTableRowsUpdated((int) currentMP, (int) currentMP);
-                    table.scrollRectToVisible(table.getCellRect((int) currentMP, 0, true));
-                }
-            }
-        });
+            });
+        }
     }
 
     @Override

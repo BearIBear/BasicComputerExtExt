@@ -240,6 +240,7 @@ public class ComponentManager {
 	private volatile long savedDelayMs = 10;
 	private final CopyOnWriteArrayList<Runnable> delayListeners = new CopyOnWriteArrayList<Runnable>();
 	private ButtonsPanel buttonsPanel = new ButtonsPanel();
+	private JPanel microcommandsPlaceholder = null;
 
 	private final GUI gui;
 	private final BasicComp bcomp;
@@ -391,6 +392,11 @@ public class ComponentManager {
 		}
 		buttonsPanel.setPreferredSize(buttonsPanel.getSize());
 
+		if (microcommandsPlaceholder != null) {
+			buttonsPanel.remove(microcommandsPlaceholder);
+			microcommandsPlaceholder = null;
+		}
+
 		GridBagConstraints constraints = new GridBagConstraints();
 		constraints.anchor = GridBagConstraints.CENTER;
 		constraints.fill = GridBagConstraints.NONE;
@@ -412,6 +418,29 @@ public class ComponentManager {
 		activeBit.setMinimumSize(activeBit.getSize());
 		buttonsPanel.add(activeBit, constraints);
 		mem.setPreferredSize(mem.getSize());
+
+		boolean isMicrocommands = component instanceof MicrocommandsView;
+		if (buttons != null) {
+			if (buttons.length > 0 && buttons[0] != null) buttons[0].setVisible(!isMicrocommands);
+			if (buttons.length > 1 && buttons[1] != null) buttons[1].setVisible(!isMicrocommands);
+			if (buttons.length > 2 && buttons[2] != null) buttons[2].setVisible(!isMicrocommands);
+			if (buttons.length > 5 && buttons[5] != null) buttons[5].setVisible(!isMicrocommands);
+		}
+		if (input != null) input.setVisible(!isMicrocommands);
+		if (activeBit != null) activeBit.setVisible(!isMicrocommands);
+
+		if (isMicrocommands) {
+			GridBagConstraints placeholderConstraints = new GridBagConstraints();
+			placeholderConstraints.gridx = 0;
+			placeholderConstraints.gridy = 0;
+			placeholderConstraints.gridwidth = 3;
+			placeholderConstraints.gridheight = 2;
+			placeholderConstraints.weightx = 2.0;
+			placeholderConstraints.fill = GridBagConstraints.BOTH;
+			microcommandsPlaceholder = new JPanel();
+			microcommandsPlaceholder.setOpaque(false);
+			buttonsPanel.add(microcommandsPlaceholder, placeholderConstraints);
+		}
 
 		component.add(buttonsPanel, BorderLayout.SOUTH);
 
@@ -435,7 +464,11 @@ public class ComponentManager {
 	}
 
 	public void switchFocus() {
-		input.setActive();
+		if (activePanel instanceof MicrocommandsView) {
+			// Do not activate/focus input register
+		} else {
+			input.setActive();
+		}
 	}
 
 	public RegisterView getRegisterView(Reg reg) {
